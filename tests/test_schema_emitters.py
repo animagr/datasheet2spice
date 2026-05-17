@@ -31,10 +31,33 @@ class SchemaEmitterTests(unittest.TestCase):
         self.assertIn(".subckt DEMO_SIC_1200", joined)
         self.assertIn("Bch", joined)
 
+    def test_emit_abm_major_dialects(self):
+        expectations = {
+            "pspice": "VALUE =",
+            "hspice": "CUR='",
+            "xyce": "Bch",
+            "qspice": "Bch",
+        }
+        for dialect, marker in expectations.items():
+            with self.subTest(dialect=dialect):
+                files = registry.emitters["abm-basic"].emit(self.project, dialect)
+                joined = "\n".join(files.values())
+                self.assertIn(marker, joined)
+                self.assertTrue(any(f"_abm_{dialect}.lib" in name for name in files))
+
     def test_emit_vdmos(self):
         files = registry.emitters["vdmos-static-fast"].emit(self.project, "ltspice")
         joined = "\n".join(files.values())
         self.assertIn(".model DEMO_SIC_1200_VDMOS VDMOS", joined)
+
+    def test_emit_vdmos_portable_fallback_for_non_native_dialects(self):
+        for dialect in ["common", "pspice", "hspice", "xyce", "qspice"]:
+            with self.subTest(dialect=dialect):
+                files = registry.emitters["vdmos-static-fast"].emit(self.project, dialect)
+                joined = "\n".join(files.values())
+                self.assertIn("portable MOS fallback", joined)
+                self.assertIn(".subckt DEMO_SIC_1200_VDMOS D G S", joined)
+                self.assertIn("XQ drain gate 0 DEMO_SIC_1200_VDMOS", joined)
 
     def test_validate_rejects_bad_capacitance(self):
         project = DeviceProject.new("BAD")

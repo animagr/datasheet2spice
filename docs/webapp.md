@@ -29,6 +29,8 @@ http://127.0.0.1:8765
    directly for deeper changes.
 4. Run parameter fitting and model quality evaluation.
 5. Select `ABM 行为模型`, `VDMOS 紧凑模型`, and the target SPICE dialect.
+   The workbench can emit common SPICE, LTspice, ngspice, PSpice, HSPICE,
+   Xyce, and experimental QSPICE bundles. See [SPICE Dialects](spice_dialects.md).
 6. Generate and download the ZIP model bundle.
 
 Generated files are written under `build/webapp/<session>/generated/`.

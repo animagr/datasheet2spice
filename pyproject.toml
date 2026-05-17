@@ -12,7 +12,7 @@ license = "Apache-2.0"
 authors = [
   { name = "datasheet2spice contributors" }
 ]
-keywords = ["spice", "mosfet", "sic", "datasheet", "ltspice", "ngspice", "vdmos"]
+keywords = ["spice", "mosfet", "sic", "datasheet", "ltspice", "ngspice", "pspice", "hspice", "xyce", "vdmos"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",

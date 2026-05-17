@@ -2,7 +2,7 @@
 
 ## VDMOS
 
-The `vdmos-static-fast` emitter maps datasheet values into a compact power MOSFET model card.
+The `vdmos-static-fast` emitter maps datasheet values into a compact power MOSFET model starter.
 
 Typical mapping:
 
@@ -16,7 +16,13 @@ Typical mapping:
 - `Cjo`: high-voltage `Coss - Crss`.
 - `Tt`: reverse recovery starter from `Qrr/IF` or `trr`.
 
-This is fast, but not enough for high-fidelity switching waveforms without fitting.
+For `ltspice` and `ngspice`, this is emitted as a native `.model ... VDMOS(...)`
+card. For `common`, `pspice`, `hspice`, `xyce`, and experimental `qspice`, the
+emitter writes a portable MOS fallback subcircuit with fixed capacitances and a
+simple `NMOS LEVEL=1` channel. The fallback is useful for topology and deck
+checks, but it is not equivalent to a native VDMOS implementation.
+
+This family is fast, but not enough for high-fidelity switching waveforms without fitting.
 
 ## ABM Basic
 
@@ -28,6 +34,9 @@ The `abm-basic` emitter uses:
 - explicit package/gate parasitics.
 
 The current capacitance implementation is a starter. For better convergence and accuracy, future work should replace table capacitances with smoothed charge functions.
+
+See [SPICE Dialects](spice_dialects.md) for the supported netlist dialects and
+the boundary between native VDMOS and portable fallback exports.
 
 ## Model Level Naming
 

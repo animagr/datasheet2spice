@@ -562,8 +562,12 @@ INDEX_HTML = r"""<!doctype html>
           <select id="dialect">
             <option value="ltspice">LTspice</option>
             <option value="ngspice">ngspice</option>
-            <option value="common">common ABM</option>
-            <option value="all">全部</option>
+            <option value="common">portable common SPICE</option>
+            <option value="pspice">PSpice</option>
+            <option value="hspice">HSPICE</option>
+            <option value="xyce">Xyce</option>
+            <option value="qspice">QSPICE experimental</option>
+            <option value="all">全部主要方言</option>
           </select>
         </div>
         <div class="row">
@@ -707,7 +711,7 @@ INDEX_HTML = r"""<!doctype html>
     document.getElementById("generateBtn").addEventListener("click", async () => {
       const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
       const dialect = document.getElementById("dialect").value;
-      const dialects = dialect === "all" ? ["common", "ltspice", "ngspice"] : [dialect];
+      const dialects = dialect === "all" ? ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"] : [dialect];
       if (!models.length) { setStatus("generateStatus", "至少选择一种模型。", "warn"); return; }
       let project;
       try { project = JSON.parse(document.getElementById("projectJson").value); }

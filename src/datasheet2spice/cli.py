@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sys
 
+from .dialects import ALL_DIALECTS, SUPPORTED_DIALECTS
 from .plugins import load_plugins, plugin_load_errors, registry
 from .report import render_report
 from .schema import DeviceProject
@@ -47,7 +48,7 @@ def cmd_emit(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     models = ["vdmos-static-fast", "abm-basic"] if args.all else [args.model]
-    dialects = ["common", "ltspice", "ngspice"] if args.dialect == "all" else [args.dialect]
+    dialects = list(ALL_DIALECTS) if args.dialect == "all" else [args.dialect]
     if any(model in {"vdmos-static-fast", "abm-basic"} for model in models):
         errors = validate_project(project)
         if errors:
@@ -169,7 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("project")
     p.add_argument("--out", default="build")
     p.add_argument("--model", default="abm-basic", help="emitter id, including third-party plugin emitters")
-    p.add_argument("--dialect", choices=["common", "ltspice", "ngspice", "all"], default="ltspice")
+    p.add_argument("--dialect", choices=[*SUPPORTED_DIALECTS, "all"], default="ltspice")
     p.add_argument("--all", action="store_true")
     p.set_defaults(func=cmd_emit)
 

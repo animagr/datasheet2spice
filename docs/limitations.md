@@ -9,18 +9,21 @@ model generator.
   still require human review.
 - CSV curve import remains the most reliable path for `Ciss/Coss/Crss`; PDF
   text/vector extraction is experimental and layout dependent.
-- Automatic curve digitization currently works on vector PDF curves. Raster-only
-  plots and scanned datasheets still need manual CSV import.
+- Automatic curve digitization works best on vector PDF curves. Raster-only
+  plots and scanned datasheets can be digitized with the calibrated raster tool,
+  but low-resolution scans, touching grid lines, and poor contrast still need
+  human review.
 - The model quality score is a triage signal based on extracted data
   consistency and simple fitting checks; final accuracy still requires SPICE
   smoke tests and comparison with datasheet or lab waveforms.
 - The ABM capacitance implementation is a starter table model. Higher accuracy
   and faster convergence usually need smoothed charge functions fitted to
   `C(V)`, `Qg`, `Eoss`, and switching waveforms.
-- `VDMOS` is a compact-model convenience available in LTspice/ngspice-like
-  simulators; it is not universal SPICE syntax.
-- The `common` ABM dialect is a best-effort netlist style, not a guarantee that
-  every SPICE engine accepts the same behavioral-source functions.
+- Native `VDMOS` model cards are emitted only for LTspice and ngspice. Other
+  dialects receive a portable MOS fallback subcircuit for the `vdmos-static-fast`
+  family.
+- The `common`, PSpice, HSPICE, Xyce, and QSPICE ABM dialects are best-effort
+  starter netlists; each target simulator should still be smoke-tested.
 - Temperature and self-heating are represented only through starter parameter
   tables. Full electrothermal behavior is future work.
 - Package and PCB parasitics dominate fast switching waveforms; generated decks

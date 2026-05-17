@@ -21,6 +21,8 @@ class CliTests(unittest.TestCase):
             paths = {p.name for p in Path(td).iterdir()}
             self.assertIn("DEMO_SIC_1200_abm_ltspice.lib", paths)
             self.assertIn("DEMO_SIC_1200_vdmos_ltspice.lib", paths)
+            self.assertIn("DEMO_SIC_1200_abm_pspice.lib", paths)
+            self.assertIn("DEMO_SIC_1200_vdmos_hspice.lib", paths)
 
     def test_import_capacitance_csv(self):
         with tempfile.TemporaryDirectory() as td:

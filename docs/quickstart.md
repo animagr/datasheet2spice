@@ -39,6 +39,11 @@ Generated files include:
 - `*_abm_*.lib`
 - `*_double_pulse_*.cir`
 
+`--dialect all` emits common SPICE, LTspice, ngspice, PSpice, HSPICE, Xyce,
+and experimental QSPICE variants. Native VDMOS cards are generated for LTspice
+and ngspice; other VDMOS dialects use a portable MOS fallback subcircuit. See
+[SPICE Dialects](spice_dialects.md).
+
 ## Validate And Report
 
 ```powershell

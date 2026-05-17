@@ -8,7 +8,8 @@ It is designed for engineering work where every number must be auditable. It doe
 
 - Stores extracted datasheet values in a structured JSON schema with provenance.
 - Emits fast `VDMOS` compact model starters.
-- Emits simple ABM behavioral model starters for common SPICE, LTspice, and ngspice styles.
+- Emits simple ABM behavioral model starters for common SPICE, LTspice,
+  ngspice, PSpice, HSPICE, Xyce, and experimental QSPICE styles.
 - Generates double-pulse starter decks.
 - Provides plugin interfaces and Python entry points for PDF extraction, curve import, emitters, and validators.
 - Keeps AGPL/GPL tools optional instead of mandatory runtime dependencies.
@@ -41,9 +42,10 @@ python -m pip install -e .[pdf]
 datasheet2spice serve --host 127.0.0.1 --port 8765
 ```
 
-The workbench includes PDF table recognition, side-by-side screenshot evidence,
-vector capacitance-curve digitization, calibrated raster plot digitization,
-parameter review forms, starter fit recommendations, and a model quality score.
+The workbench includes PDF table recognition, per-field screenshot evidence
+previews, vector capacitance-curve digitization, calibrated raster plot
+digitization, parameter review forms, starter fit recommendations, and a model
+quality score.
 
 Ten-minute path for a new device:
 
@@ -92,7 +94,8 @@ datasheet or lab waveforms.
 
 - Flexible behavioral starter.
 - Uses smooth `Idsat(Vgs)` plus `RDS(on)` and nonlinear capacitance tables.
-- Supports common ABM, LTspice, and ngspice emitter dialects.
+- Supports common ABM, LTspice, ngspice, PSpice, HSPICE, Xyce, and
+  experimental QSPICE emitter dialects.
 
 ## License
 
@@ -106,6 +109,7 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [Plugins](docs/plugins.md)
 - [Browser Workbench](docs/webapp.md)
 - [Raster Plot Digitization](docs/raster_digitization.md)
+- [SPICE Dialects](docs/spice_dialects.md)
 - [Modeling Notes](docs/modeling.md)
 - [Limitations](docs/limitations.md)
 - [License Strategy](docs/license_strategy.md)

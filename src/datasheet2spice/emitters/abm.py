@@ -5,6 +5,7 @@ from __future__ import annotations
 from textwrap import dedent
 
 from ..curves import table_pairs
+from ..dialects import SUPPORTED_DIALECTS, dialect_suffix
 from ..plugins import emitter
 from ..schema import DeviceProject
 
@@ -42,11 +43,11 @@ class AbmBasicEmitter:
     name = "abm-basic"
 
     def emit(self, project: DeviceProject, dialect: str = "common") -> dict[str, str]:
-        if dialect not in {"common", "ltspice", "ngspice"}:
+        if dialect not in SUPPORTED_DIALECTS:
             raise ValueError(f"unsupported ABM dialect: {dialect}")
         model = _render_lib(project, dialect)
         deck = _render_double_pulse(project, _lib_name(project, dialect))
-        suffix = "" if dialect == "common" else f"_{dialect}"
+        suffix = dialect_suffix(dialect)
         return {
             _lib_name(project, dialect): model,
             f"{project.model_name}_double_pulse_abm{suffix}.cir": deck,
@@ -54,7 +55,7 @@ class AbmBasicEmitter:
 
 
 def _lib_name(project: DeviceProject, dialect: str) -> str:
-    suffix = "" if dialect == "common" else f"_{dialect}"
+    suffix = dialect_suffix(dialect)
     return f"{project.model_name}_abm{suffix}.lib"
 
 
@@ -84,20 +85,31 @@ def _render_lib(project: DeviceProject, dialect: str) -> str:
     qrr_nc = float(body.get("qrr_nc", 0.0) or 0.0)
     tt_ns = qrr_nc / ids_ref if qrr_nc > 0 and ids_ref > 0 else float(body.get("trr_ns", 20.0) or 20.0)
 
-    if dialect == "common":
+    if dialect in {"common", "pspice"}:
         model_scope = "PSpice/SIMetrix-style common ABM transient model."
         clamp_expr = "min(max(abs(v),0.1),1000)"
         ch = "Gch d_int s_int VALUE = {IDSAT_F(V(g_int,s_int))*tanh(V(d_int,s_int)/(RON*IDSAT_F(V(g_int,s_int))+1m))}"
         gs = "Ggs g_int s_int VALUE = {CGS_F(V(d_int,s_int))*DDT(V(g_int,s_int))}"
         gd = "Ggd g_int d_int VALUE = {CGD_F(V(d_int,s_int))*DDT(V(g_int,d_int))}"
         ds = "Gds d_int s_int VALUE = {CDS_F(V(d_int,s_int))*DDT(V(d_int,s_int))}"
-    elif dialect == "ltspice":
+        if dialect == "pspice":
+            model_scope = "PSpice ABM transient model using VALUE-controlled sources."
+    elif dialect in {"ltspice", "qspice"}:
         model_scope = "LTspice behavioral-source transient model."
         clamp_expr = "limit(abs(v),0.1,1000)"
         ch = "Bch d_int s_int I = {IDSAT_F(V(g_int,s_int))*tanh(V(d_int,s_int)/(RON*IDSAT_F(V(g_int,s_int))+1m))}"
         gs = "Bgs g_int s_int I = {CGS_F(V(d_int,s_int))*ddt(V(g_int,s_int))}"
         gd = "Bgd g_int d_int I = {CGD_F(V(d_int,s_int))*ddt(V(g_int,d_int))}"
         ds = "Bds d_int s_int I = {CDS_F(V(d_int,s_int))*ddt(V(d_int,s_int))}"
+        if dialect == "qspice":
+            model_scope = "QSPICE experimental LTspice-like behavioral-source transient model."
+    elif dialect == "hspice":
+        model_scope = "HSPICE ABM starter using current-controlled expression sources."
+        clamp_expr = "min(max(abs(v),0.1),1000)"
+        ch = "Gch d_int s_int CUR='IDSAT_F(V(g_int,s_int))*tanh(V(d_int,s_int)/(RON*IDSAT_F(V(g_int,s_int))+1m))'"
+        gs = "Ggs g_int s_int CUR='CGS_F(V(d_int,s_int))*DDT(V(g_int,s_int))'"
+        gd = "Ggd g_int d_int CUR='CGD_F(V(d_int,s_int))*DDT(V(g_int,d_int))'"
+        ds = "Gds d_int s_int CUR='CDS_F(V(d_int,s_int))*DDT(V(d_int,s_int))'"
     else:
         model_scope = "ngspice/SPICE3 ABM transient model."
         clamp_expr = "min(max(abs(v),0.1),1000)"
@@ -105,6 +117,8 @@ def _render_lib(project: DeviceProject, dialect: str) -> str:
         gs = "Bgs g_int s_int I = {CGS_F(V(d_int,s_int))*DDT(V(g_int,s_int))}"
         gd = "Bgd g_int d_int I = {CGD_F(V(d_int,s_int))*DDT(V(g_int,d_int))}"
         ds = "Bds d_int s_int I = {CDS_F(V(d_int,s_int))*DDT(V(d_int,s_int))}"
+        if dialect == "xyce":
+            model_scope = "Xyce/SPICE3 behavioral-source transient model."
 
     return _clean(dedent(
         f"""\
