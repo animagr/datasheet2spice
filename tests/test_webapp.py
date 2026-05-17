@@ -19,6 +19,8 @@ class WebAppTests(unittest.TestCase):
             names = {item["name"] for item in result["files"]}
             self.assertIn("DEMO_SIC_1200_abm_ltspice.lib", names)
             self.assertIn("DEMO_SIC_1200_models.zip", names)
+            self.assertIn("fit_evaluation.json", names)
+            self.assertIn("evaluation", result)
 
 
 if __name__ == "__main__":

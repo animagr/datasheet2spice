@@ -41,6 +41,10 @@ python -m pip install -e .[pdf]
 datasheet2spice serve --host 127.0.0.1 --port 8765
 ```
 
+The workbench includes PDF table recognition, vector capacitance-curve
+digitization, parameter review forms, starter fit recommendations, and a model
+quality score.
+
 Ten-minute path for a new device:
 
 ```powershell

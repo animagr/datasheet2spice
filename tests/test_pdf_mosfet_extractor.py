@@ -104,7 +104,11 @@ class PdfMosfetExtractorTests(unittest.TestCase):
         self.assertEqual(project.part_number, "S4661")
         self.assertEqual(project.data["ratings"]["vdss_v"], 1200.0)
         self.assertEqual(project.data["static"]["rds_on_mohm"]["25"], 11.0)
-        self.assertEqual(project.data["dynamic"]["capacitance"]["ciss_pf"][-1], 7868.0)
+        caps = project.data["dynamic"]["capacitance"]
+        idx = caps["vds_v"].index(800.0)
+        self.assertAlmostEqual(caps["ciss_pf"][idx], 7869.87, places=1)
+        self.assertGreaterEqual(len(result["tables"]), 3)
+        self.assertEqual(result["curve_digitization"]["page"], 11)
         self.assertEqual(validate_project(project), [])
 
 

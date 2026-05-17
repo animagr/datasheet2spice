@@ -12,6 +12,8 @@ import re
 from typing import Any
 
 from ..schema import DeviceProject
+from .curve_digitizer import digitize_capacitance_curves_from_pdf
+from .pdf_tables import extract_pdf_tables
 
 
 @dataclass(slots=True)
@@ -45,7 +47,24 @@ def extract_mosfet_project_from_pdf(pdf: str | Path) -> dict[str, Any]:
     with fitz.open(str(path)) as doc:
         for page in doc:
             pages.append(page.get_text("text"))
-    return extract_mosfet_project_from_text(pages, source=str(path), fallback_part=path.stem)
+    result = extract_mosfet_project_from_text(pages, source=str(path), fallback_part=path.stem)
+    tables = extract_pdf_tables(path)
+    curve = digitize_capacitance_curves_from_pdf(path)
+    if curve:
+        project: DeviceProject = result["project"]
+        project.data.setdefault("dynamic", {})["capacitance"] = curve["data"]
+        project.data.setdefault("provenance", []).append(
+            {
+                "source": str(path),
+                "kind": "pdf_vector_curve_digitization",
+                "note": f"Auto-digitized {curve['kind']} curve on page {curve['page']}.",
+            }
+        )
+        result["curve_digitization"] = curve
+    else:
+        result["curve_digitization"] = None
+    result["tables"] = tables
+    return result
 
 
 def extract_mosfet_project_from_text(
@@ -158,7 +177,7 @@ def extract_mosfet_project_from_text(
             ],
         }
     )
-    return {"project": project, "findings": [item.as_dict() for item in findings], "warnings": warnings}
+    return {"project": project, "findings": [item.as_dict() for item in findings], "warnings": warnings, "tables": [], "curve_digitization": None}
 
 
 def _capacitance_curve_from_single_point(ciss: float, coss: float, crss: float, vdss: float) -> dict[str, list[float]]:

@@ -11,11 +11,11 @@
 
 ## Near-Term Improvements
 
-- CLI wrappers for optional PDF vector extraction.
+- Raster-plot digitization for scanned datasheets.
 - More validators for gate charge, diode curves, and switching-test conditions.
 - ngspice batch smoke tests for generated starter decks.
 - Smoothing and charge-based capacitance functions for the ABM emitter.
-- Parameter-fitting helpers for double-pulse waveforms.
+- Parameter-fitting helpers that use measured double-pulse waveforms.
 
 ## Later Model Families
 

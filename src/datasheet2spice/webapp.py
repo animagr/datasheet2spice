@@ -13,7 +13,9 @@ import uuid
 import zipfile
 from typing import Any
 
+from .evaluation import evaluate_project_model
 from .extractors.pdf_mosfet import extract_mosfet_project_from_pdf
+from .fitting import fit_project_parameters
 from .plugins import load_plugins, registry
 from .report import render_report
 from .schema import DeviceProject
@@ -55,6 +57,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         if self.path == "/api/generate":
             self._handle_generate()
             return
+        if self.path == "/api/fit":
+            self._handle_fit()
+            return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003 - BaseHTTPRequestHandler API
@@ -84,6 +89,10 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
                     "project_path": str(project_path),
                     "findings": result["findings"],
                     "warnings": result["warnings"],
+                    "tables": result.get("tables", []),
+                    "curve_digitization": result.get("curve_digitization"),
+                    "fit": fit_project_parameters(project)["fits"],
+                    "evaluation": evaluate_project_model(project),
                 }
             )
         except Exception as exc:
@@ -98,6 +107,17 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             dialects = [str(item) for item in body.get("dialects", ["ltspice"])]
             bundle = generate_model_bundle(project, self.workspace / session / "generated", models, dialects)
             self._send_json(bundle)
+        except KeyError as exc:
+            self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_fit(self) -> None:
+        try:
+            body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
+            project = DeviceProject(data=body["project"])
+            fit = fit_project_parameters(project)
+            self._send_json({"ok": True, "project": fit["project"], "fit": fit["fits"], "evaluation": evaluate_project_model(project)})
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -159,6 +179,11 @@ def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: l
     report_path = out / "report.md"
     report_path.write_text(report + "\n", encoding="utf-8")
     files.append({"name": "report.md", "path": str(report_path), "content": report})
+    fit = fit_project_parameters(project)
+    evaluation = evaluate_project_model(project)
+    analysis_path = out / "fit_evaluation.json"
+    analysis_path.write_text(json.dumps({"fit": fit["fits"], "evaluation": evaluation}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    files.append({"name": "fit_evaluation.json", "path": str(analysis_path), "content": analysis_path.read_text(encoding="utf-8")})
 
     zip_path = out / f"{project.model_name}_models.zip"
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
@@ -166,7 +191,15 @@ def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: l
             zf.write(item["path"], arcname=item["name"])
     files.append({"name": zip_path.name, "path": str(zip_path), "content": ""})
     session = out.parent.name
-    return {"ok": True, "errors": [], "files": files, "download_url": f"/download/{session}/{zip_path.name}", "report": report}
+    return {
+        "ok": True,
+        "errors": [],
+        "files": files,
+        "download_url": f"/download/{session}/{zip_path.name}",
+        "report": report,
+        "fit": fit["fits"],
+        "evaluation": evaluation,
+    }
 
 
 def _content_length(handler: BaseHTTPRequestHandler) -> int:
@@ -275,6 +308,11 @@ INDEX_HTML = r"""<!doctype html>
     .mono { font-family: Consolas, monospace; }
     .files a { color: var(--accent); text-decoration: none; }
     .preview { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; max-height: 260px; overflow: auto; }
+    h3 { font-size: 13px; margin: 8px 0; }
+    .compact { max-height: 240px; overflow: auto; font-size: 12px; }
+    .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .review-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
+    .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
     @media (max-width: 1180px) { main { grid-template-columns: 1fr; } textarea { min-height: 300px; } }
   </style>
 </head>
@@ -304,6 +342,19 @@ INDEX_HTML = r"""<!doctype html>
           <thead><tr><th>字段</th><th>值</th><th>置信度</th><th>来源片段</th></tr></thead>
           <tbody id="findings"></tbody>
         </table>
+        <div>
+          <h3>参数校对</h3>
+          <div id="reviewFields" class="review-grid"></div>
+          <button class="secondary" id="applyReviewBtn" disabled>应用校对值到 JSON</button>
+        </div>
+        <div>
+          <h3>自动数字化曲线</h3>
+          <div id="curveBox" class="compact"></div>
+        </div>
+        <div>
+          <h3>识别到的表格</h3>
+          <div id="tablesBox" class="compact"></div>
+        </div>
       </div>
     </section>
 
@@ -327,8 +378,12 @@ INDEX_HTML = r"""<!doctype html>
             <option value="all">全部</option>
           </select>
         </div>
-        <button id="generateBtn" disabled>生成模型文件</button>
+        <div class="row">
+          <button class="secondary" id="fitBtn" disabled>重新拟合并评估</button>
+          <button id="generateBtn" disabled>生成模型文件</button>
+        </div>
         <div id="generateStatus" class="status">提取成功后可生成。</div>
+        <div id="evaluation" class="compact"></div>
         <div class="files" id="files"></div>
         <div class="preview" id="report"></div>
       </div>
@@ -354,6 +409,8 @@ INDEX_HTML = r"""<!doctype html>
       if (!res.ok || data.error) { setStatus("extractStatus", data.error || "提取失败", "bad"); return; }
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
+      document.getElementById("fitBtn").disabled = false;
+      document.getElementById("applyReviewBtn").disabled = false;
       setStatus("extractStatus", `已提取 ${data.project.device.part_number}，请检查右侧 JSON。`);
       document.getElementById("warnings").innerHTML = (data.warnings || []).map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
       document.getElementById("findings").innerHTML = (data.findings || []).map(f => `
@@ -363,6 +420,38 @@ INDEX_HTML = r"""<!doctype html>
           <td>${Math.round((f.confidence || 0) * 100)}%</td>
           <td>${escapeHtml(f.snippet || "")}</td>
         </tr>`).join("");
+      renderReviewFields(data.project);
+      renderCurve(data.curve_digitization);
+      renderTables(data.tables || []);
+      renderEvaluation(data.evaluation, data.fit || []);
+    });
+    document.getElementById("applyReviewBtn").addEventListener("click", () => {
+      let project;
+      try { project = JSON.parse(document.getElementById("projectJson").value); }
+      catch (err) { setStatus("extractStatus", "JSON 格式错误：" + err.message, "bad"); return; }
+      for (const input of document.querySelectorAll("[data-path]")) {
+        const raw = input.value.trim();
+        if (raw === "") continue;
+        setPath(project, input.dataset.path, Number.isFinite(Number(raw)) ? Number(raw) : raw);
+      }
+      document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
+      setStatus("extractStatus", "校对值已写入 JSON。");
+    });
+    document.getElementById("fitBtn").addEventListener("click", async () => {
+      let project;
+      try { project = JSON.parse(document.getElementById("projectJson").value); }
+      catch (err) { setStatus("generateStatus", "JSON 格式错误：" + err.message, "bad"); return; }
+      setStatus("generateStatus", "正在拟合并评估...");
+      const res = await fetch("/api/fit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session, project })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setStatus("generateStatus", data.error || "拟合失败", "bad"); return; }
+      document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
+      renderEvaluation(data.evaluation, data.fit || []);
+      setStatus("generateStatus", "拟合和评估已更新。");
     });
     document.getElementById("generateBtn").addEventListener("click", async () => {
       const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
@@ -381,10 +470,72 @@ INDEX_HTML = r"""<!doctype html>
       const data = await res.json();
       if (!res.ok || !data.ok) { setStatus("generateStatus", (data.errors || [data.error]).join("; "), "bad"); return; }
       setStatus("generateStatus", `已生成 ${data.files.length} 个文件。`);
+      renderEvaluation(data.evaluation, data.fit || []);
       document.getElementById("files").innerHTML = `<a href="${data.download_url}">下载 ZIP 模型包</a><br>` +
         data.files.map(f => `<span class="mono">${escapeHtml(f.name)}</span>`).join("<br>");
       document.getElementById("report").textContent = data.report || "";
     });
+    function renderReviewFields(project) {
+      const fields = [
+        ["ratings.vdss_v", "VDSS (V)"],
+        ["ratings.id_cont_a", "ID cont (A)"],
+        ["ratings.vgs_on_v", "VGS on (V)"],
+        ["ratings.vgs_off_v", "VGS off (V)"],
+        ["static.vgs_th_v.25", "VGS(th) 25C (V)"],
+        ["static.rds_on_mohm.25", "RDS(on) 25C (mΩ)"],
+        ["static.gfs_s", "gfs (S)"],
+        ["static.rg_int_ohm", "RG int (Ω)"],
+        ["dynamic.gate_charge.qg_nc", "Qg (nC)"],
+        ["dynamic.gate_charge.qgs_nc", "Qgs (nC)"],
+        ["dynamic.gate_charge.qgd_nc", "Qgd (nC)"],
+        ["dynamic.body_diode.qrr_nc", "Qrr (nC)"],
+        ["dynamic.body_diode.trr_ns", "trr (ns)"],
+        ["dynamic.body_diode.irrm_a", "Irrm (A)"]
+      ];
+      document.getElementById("reviewFields").innerHTML = fields.map(([path, label]) => `
+        <label>${escapeHtml(label)}<input data-path="${escapeHtml(path)}" value="${escapeHtml(getPath(project, path) ?? "")}"></label>
+      `).join("");
+    }
+    function renderCurve(curve) {
+      if (!curve) { document.getElementById("curveBox").innerHTML = `<div class="status warn">未识别到可自动数字化的 Ciss/Coss/Crss 矢量曲线。</div>`; return; }
+      const data = curve.data || {};
+      const rows = (data.vds_v || []).map((v, i) => `
+        <tr><td>${v}</td><td>${data.ciss_pf[i]}</td><td>${data.coss_pf[i]}</td><td>${data.crss_pf[i]}</td></tr>
+      `).join("");
+      document.getElementById("curveBox").innerHTML = `
+        <div><span class="pill">page ${curve.page}</span><span class="pill">confidence ${Math.round(curve.confidence * 100)}%</span></div>
+        <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
+      `;
+    }
+    function renderTables(tables) {
+      if (!tables.length) { document.getElementById("tablesBox").textContent = "未识别到表格候选。"; return; }
+      document.getElementById("tablesBox").innerHTML = tables.slice(0, 4).map(table => `
+        <div class="status"><b>page ${table.page}</b> score ${Math.round(table.score * 100)}%</div>
+        <table><tbody>${table.rows.slice(0, 6).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+      `).join("");
+    }
+    function renderEvaluation(evaluation, fits) {
+      if (!evaluation) { document.getElementById("evaluation").textContent = ""; return; }
+      const fitRows = (fits || []).map(f => `<tr><td>${escapeHtml(f.model)}</td><td class="mono">${escapeHtml(JSON.stringify(f.parameters))}</td></tr>`).join("");
+      document.getElementById("evaluation").innerHTML = `
+        <div class="status"><b>质量评分 ${evaluation.overall_score}/100</b>，等级 ${escapeHtml(evaluation.grade)}</div>
+        <div>${Object.entries(evaluation.scores || {}).map(([k,v]) => `<span class="pill">${escapeHtml(k)} ${Math.round(v * 100)}%</span>`).join("")}</div>
+        <div>${(evaluation.notes || []).map(n => `<div class="status warn">${escapeHtml(n)}</div>`).join("")}</div>
+        <table><thead><tr><th>模型</th><th>拟合参数</th></tr></thead><tbody>${fitRows}</tbody></table>
+      `;
+    }
+    function getPath(obj, path) {
+      return path.split(".").reduce((cur, key) => cur && cur[key] !== undefined ? cur[key] : undefined, obj);
+    }
+    function setPath(obj, path, value) {
+      const parts = path.split(".");
+      let cur = obj;
+      for (const key of parts.slice(0, -1)) {
+        if (!cur[key] || typeof cur[key] !== "object") cur[key] = {};
+        cur = cur[key];
+      }
+      cur[parts[parts.length - 1]] = value;
+    }
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }

@@ -9,6 +9,11 @@ model generator.
   still require human review.
 - CSV curve import remains the most reliable path for `Ciss/Coss/Crss`; PDF
   text/vector extraction is experimental and layout dependent.
+- Automatic curve digitization currently works on vector PDF curves. Raster-only
+  plots and scanned datasheets still need manual CSV import.
+- The model quality score is a triage signal based on extracted data
+  consistency and simple fitting checks; final accuracy still requires SPICE
+  smoke tests and comparison with datasheet or lab waveforms.
 - The ABM capacitance implementation is a starter table model. Higher accuracy
   and faster convergence usually need smoothed charge functions fitted to
   `C(V)`, `Qg`, `Eoss`, and switching waveforms.
