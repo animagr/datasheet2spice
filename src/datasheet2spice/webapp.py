@@ -463,8 +463,12 @@ INDEX_HTML = r"""<!doctype html>
       color: #fff; font-size: 13px;
     }
     .image-modal button { background: #fff; color: var(--ink); border-color: #fff; }
+    .image-modal-stage {
+      overflow: auto; display: grid; align-items: start; justify-items: center;
+      background: rgba(255, 255, 255, .1); border-radius: 8px; padding: 14px;
+    }
     .image-modal img {
-      max-width: 100%; max-height: 100%; place-self: center; object-fit: contain;
+      max-width: none; max-height: none; width: auto; height: auto;
       background: #fff; border-radius: 6px;
     }
     .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -822,7 +826,7 @@ INDEX_HTML = r"""<!doctype html>
           </div>
           <div class="mono">${escapeHtml((item.bbox || []).join(", "))}</div>
           <div class="row" style="margin-top: 7px;">
-            <button class="secondary" data-evidence-zoom-btn="1">放大查看完整截图</button>
+            <button class="secondary" data-evidence-zoom-btn="1">放大查看上下文截图</button>
             ${item.bbox ? `<button class="secondary" data-evidence-fill="1">填入扫描图框</button>` : ""}
           </div>
         </div>
@@ -870,14 +874,18 @@ INDEX_HTML = r"""<!doctype html>
       if (!item || !item.url) return;
       const existing = document.querySelector(".image-modal");
       if (existing) existing.remove();
+      const imageUrl = item.detail_url || item.url;
+      const bbox = item.detail_bbox || item.bbox || [];
       const modal = document.createElement("div");
       modal.className = "image-modal";
       modal.innerHTML = `
         <div class="image-modal-bar">
-          <div><b>${escapeHtml(evidenceTitle(item))}</b> · page ${escapeHtml(item.page || "")} · ${escapeHtml((item.bbox || []).join(", "))}</div>
+          <div><b>${escapeHtml(evidenceTitle(item))}</b> · page ${escapeHtml(item.page || "")} · ${escapeHtml(bbox.join(", "))}</div>
           <button type="button" data-modal-close="1">关闭</button>
         </div>
-        <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" />
+        <div class="image-modal-stage">
+          <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(evidenceTitle(item))}" />
+        </div>
       `;
       modal.addEventListener("click", event => {
         if (event.target === modal || event.target.dataset.modalClose) modal.remove();

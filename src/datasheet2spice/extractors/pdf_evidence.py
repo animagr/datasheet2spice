@@ -137,6 +137,17 @@ def _render_finding_clip(
     item = _render_clip(doc, out_dir, url_prefix, page_no, rect, filename, zoom=2.6, pad=0.0)
     if not item:
         return None
+    detail_filename = f"field_{index:02d}_{_slug(field)}_context_p{page_no}.png"
+    detail = _render_clip(
+        doc,
+        out_dir,
+        url_prefix,
+        page_no,
+        _context_crop_rect(doc[page_no - 1], rect),
+        detail_filename,
+        zoom=2.8,
+        pad=0.0,
+    )
     item.update(
         {
             "kind": "field_finding",
@@ -147,6 +158,15 @@ def _render_finding_clip(
             "confidence": finding.get("confidence"),
         }
     )
+    if detail:
+        item.update(
+            {
+                "detail_url": detail["url"],
+                "detail_bbox": detail["bbox"],
+                "detail_width": detail["width"],
+                "detail_height": detail["height"],
+            }
+        )
     return item
 
 
@@ -180,6 +200,9 @@ def _candidate_pages_for_finding(doc: Any, finding: dict[str, Any]) -> list[int]
 
 
 def _best_rect_on_page(page: Any, finding: dict[str, Any]) -> Any | None:
+    row_rect = _best_word_window_rect(page, finding)
+    if row_rect is not None:
+        return row_rect
     terms = _search_terms_for_finding(finding)
     page_text = _normalize_text(page.get_text("text"))
     best_rect = None
@@ -203,6 +226,53 @@ def _best_rect_on_page(page: Any, finding: dict[str, Any]) -> Any | None:
         if rects:
             return rects[0]
     return None
+
+
+def _best_word_window_rect(page: Any, finding: dict[str, Any]) -> Any | None:
+    import fitz  # type: ignore
+
+    rows = _word_rows(page.get_text("words"))
+    if not rows:
+        return None
+    terms = [_normalize_text(term) for term in _search_terms_for_finding(finding)]
+    value_terms = [_normalize_text(term) for term in _value_terms(finding)]
+    snippet_tokens = _snippet_tokens(str(finding.get("snippet") or ""))[:14]
+    best_score = 0
+    best_rect = None
+    for start in range(len(rows)):
+        window = rows[start : min(len(rows), start + 3)]
+        text = _normalize_text(" ".join(str(word[4]) for row in window for word in row))
+        term_hits = sum(1 for term in terms if term and term in text)
+        value_hits = sum(1 for term in value_terms if term and term in text)
+        snippet_hits = sum(1 for token in snippet_tokens if token in text)
+        if not value_hits and term_hits < 2:
+            continue
+        score = term_hits * 18 + value_hits * 36 + snippet_hits
+        if score <= best_score:
+            continue
+        x0 = min(float(word[0]) for row in window for word in row)
+        y0 = min(float(word[1]) for row in window for word in row)
+        x1 = max(float(word[2]) for row in window for word in row)
+        y1 = max(float(word[3]) for row in window for word in row)
+        best_score = score
+        best_rect = fitz.Rect(x0, y0, x1, y1)
+    return best_rect
+
+
+def _word_rows(words: list[tuple]) -> list[list[tuple]]:
+    rows: list[list[tuple]] = []
+    for word in sorted(words, key=lambda item: ((float(item[1]) + float(item[3])) / 2, float(item[0]))):
+        y = (float(word[1]) + float(word[3])) / 2
+        placed = False
+        for row in rows:
+            row_y = sum((float(item[1]) + float(item[3])) / 2 for item in row) / len(row)
+            if abs(row_y - y) <= 4.0:
+                row.append(word)
+                placed = True
+                break
+        if not placed:
+            rows.append([word])
+    return [sorted(row, key=lambda item: float(item[0])) for row in rows]
 
 
 def _nearest_value_rect(page: Any, anchor: Any, finding: dict[str, Any]) -> Any | None:
@@ -234,6 +304,14 @@ def _row_crop_rect(page: Any, rect: Any) -> tuple[float, float, float, float]:
         x0 = max(page_rect.x0 + 28, center_x - 160)
         x1 = min(page_rect.x1 - 28, center_x + 160)
     return (x0, top, x1, bottom)
+
+
+def _context_crop_rect(page: Any, rect: Any) -> tuple[float, float, float, float]:
+    page_rect = page.rect
+    y_center = (rect[1] + rect[3]) / 2
+    top = max(page_rect.y0, y_center - 92)
+    bottom = min(page_rect.y1, y_center + 112)
+    return (page_rect.x0 + 34, top, page_rect.x1 - 34, bottom)
 
 
 def _search_terms_for_finding(finding: dict[str, Any]) -> list[str]:

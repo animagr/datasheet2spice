@@ -123,6 +123,7 @@ class PdfMosfetExtractorTests(unittest.TestCase):
         field_evidence = [item for item in evidence if item.get("kind") == "field_finding"]
         self.assertGreaterEqual(len(field_evidence), 12)
         self.assertTrue(any(item.get("field") == "dynamic.capacitance.ciss_pf" for item in field_evidence))
+        self.assertTrue(all(item.get("detail_url") for item in field_evidence))
         self.assertEqual(validate_project(project), [])
 
 
