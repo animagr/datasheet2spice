@@ -367,13 +367,14 @@ INDEX_HTML = r"""<!doctype html>
     }
     h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
     main {
-      display: grid; grid-template-columns: 320px minmax(620px, 1.35fr) minmax(380px, .9fr);
-      gap: 16px; padding: 16px; max-width: 1720px; margin: 0 auto;
+      display: grid; grid-template-columns: 300px minmax(620px, 1.6fr) minmax(380px, .8fr);
+      gap: 16px; padding: 16px; max-width: 1880px; margin: 0 auto;
     }
     section {
       background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
       min-width: 0; overflow: hidden;
     }
+    section.review-section { overflow: visible; }
     section h2 {
       margin: 0; padding: 12px 14px; font-size: 15px; border-bottom: 1px solid var(--line);
       background: #fbfcfd;
@@ -405,6 +406,16 @@ INDEX_HTML = r"""<!doctype html>
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 600; background: #fbfcfd; }
+    .findings-table tr.finding-row { cursor: pointer; }
+    .findings-table tr.finding-row:hover { background: #f7fbff; }
+    .findings-table tr.finding-row.active { background: #edf6ff; box-shadow: inset 3px 0 0 var(--accent); }
+    .findings-table .field-col { width: 27%; }
+    .findings-table .value-col { width: 18%; }
+    .findings-table .confidence-col { width: 72px; }
+    .snippet-text {
+      color: var(--muted); line-height: 1.35; max-height: 4.1em; overflow: hidden;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    }
     .mono { font-family: Consolas, monospace; }
     .files a { color: var(--accent); text-decoration: none; }
     .preview { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; max-height: 260px; overflow: auto; }
@@ -413,8 +424,9 @@ INDEX_HTML = r"""<!doctype html>
     .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .review-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
-    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; align-items: start; }
     .evidence-panel {
+      position: sticky; top: 76px; align-self: start;
       border-left: 1px solid var(--line); padding-left: 12px; min-width: 0;
       max-height: calc(100vh - 138px); overflow: auto;
     }
@@ -445,7 +457,7 @@ INDEX_HTML = r"""<!doctype html>
     }
     @media (max-width: 900px) {
       .review-layout { grid-template-columns: 1fr; }
-      .evidence-panel { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; max-height: none; }
+      .evidence-panel { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; max-height: none; }
     }
   </style>
 </head>
@@ -468,13 +480,13 @@ INDEX_HTML = r"""<!doctype html>
       </div>
     </section>
 
-    <section>
+    <section class="review-section">
       <h2>提取结果与截图证据</h2>
       <div class="body">
         <div class="review-layout">
           <div class="stack">
-            <table>
-              <thead><tr><th>字段</th><th>值</th><th>置信度</th><th>来源片段</th></tr></thead>
+            <table class="findings-table">
+              <thead><tr><th class="field-col">字段</th><th class="value-col">值</th><th class="confidence-col">置信度</th><th>来源片段</th></tr></thead>
               <tbody id="findings"></tbody>
             </table>
             <div>
@@ -552,6 +564,7 @@ INDEX_HTML = r"""<!doctype html>
     const session = requestedSession || crypto.randomUUID();
     let lastExtractData = null;
     let currentEvidence = [];
+    let currentFindings = [];
     let selectedEvidenceIndex = -1;
     document.getElementById("sessionLabel").textContent = session;
     const setStatus = (id, text, kind = "") => {
@@ -589,19 +602,24 @@ INDEX_HTML = r"""<!doctype html>
       document.getElementById("applyReviewBtn").disabled = false;
       document.getElementById("rasterBtn").disabled = false;
       setStatus("extractStatus", statusText);
+      currentFindings = data.findings || [];
       document.getElementById("warnings").innerHTML = (data.warnings || []).map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
-      document.getElementById("findings").innerHTML = (data.findings || []).map(f => `
-        <tr>
+      document.getElementById("findings").innerHTML = currentFindings.map((f, idx) => `
+        <tr class="finding-row" data-finding-field="${escapeHtml(f.field)}">
           <td class="mono">${escapeHtml(f.field)}</td>
           <td class="mono">${escapeHtml(JSON.stringify(f.value))} ${escapeHtml(f.unit || "")}</td>
           <td>${Math.round((f.confidence || 0) * 100)}%</td>
-          <td>${escapeHtml(f.snippet || "")}</td>
+          <td><div class="snippet-text">${escapeHtml(f.snippet || "")}</div></td>
         </tr>`).join("");
+      document.querySelectorAll("[data-finding-field]").forEach(row => {
+        row.addEventListener("click", () => selectFinding(row.dataset.findingField));
+      });
       renderReviewFields(data.project);
       renderCurve(data.curve_digitization);
       renderTables(data.tables || []);
       selectedEvidenceIndex = -1;
       renderEvidence(data.evidence || []);
+      if (currentFindings.length) selectFinding(currentFindings[0].field);
       renderEvaluation(data.evaluation, data.fit || []);
     }
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
@@ -725,6 +743,26 @@ INDEX_HTML = r"""<!doctype html>
         <table><tbody>${table.rows.slice(0, 6).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>
       `).join("");
     }
+    function selectFinding(field) {
+      if (!field) return;
+      document.querySelectorAll("[data-finding-field]").forEach(row => {
+        row.classList.toggle("active", row.dataset.findingField === field);
+      });
+      const exactIndex = currentEvidence.findIndex(item => item.kind === "field_finding" && item.field === field);
+      if (exactIndex >= 0) {
+        selectedEvidenceIndex = exactIndex;
+        renderEvidence(currentEvidence);
+        return;
+      }
+      const finding = currentFindings.find(item => item.field === field);
+      if (finding && finding.page) {
+        const pageIndex = currentEvidence.findIndex(item => Number(item.page) === Number(finding.page));
+        if (pageIndex >= 0) {
+          selectedEvidenceIndex = pageIndex;
+          renderEvidence(currentEvidence);
+        }
+      }
+    }
     function renderEvidence(evidence) {
       const box = document.getElementById("evidenceBox");
       if (!evidence.length) {
@@ -770,9 +808,10 @@ INDEX_HTML = r"""<!doctype html>
       const fillButton = box.querySelector("[data-evidence-fill]");
       if (fillButton) fillButton.addEventListener("click", () => fillRasterFromEvidence(currentEvidence[selectedEvidenceIndex]));
       const curveEvidence = evidence.find(item => item.kind === "curve_plot" && item.bbox);
-      if (curveEvidence) fillRasterFromEvidence(curveEvidence);
+      if (curveEvidence && !document.getElementById("rasterRect").value.trim()) fillRasterFromEvidence(curveEvidence);
     }
     function evidenceTitle(item) {
+      if (item.kind === "field_finding") return item.field || "参数截图";
       const labels = {
         curve_plot: "曲线图",
         table_candidate: "表格截图",

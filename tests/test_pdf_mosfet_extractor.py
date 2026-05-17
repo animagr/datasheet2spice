@@ -1,6 +1,8 @@
 from pathlib import Path
+import tempfile
 import unittest
 
+from datasheet2spice.extractors.pdf_evidence import render_pdf_evidence_images
 from datasheet2spice.extractors.pdf_mosfet import extract_mosfet_project_from_pdf, extract_mosfet_project_from_text
 from datasheet2spice.validate import validate_project
 
@@ -109,6 +111,18 @@ class PdfMosfetExtractorTests(unittest.TestCase):
         self.assertAlmostEqual(caps["ciss_pf"][idx], 7869.87, places=1)
         self.assertGreaterEqual(len(result["tables"]), 3)
         self.assertEqual(result["curve_digitization"]["page"], 11)
+        with tempfile.TemporaryDirectory() as td:
+            evidence = render_pdf_evidence_images(
+                LOCAL_S4661,
+                Path(td),
+                "/assets/test",
+                findings=result["findings"],
+                tables=result["tables"],
+                curve_digitization=result["curve_digitization"],
+            )
+        field_evidence = [item for item in evidence if item.get("kind") == "field_finding"]
+        self.assertGreaterEqual(len(field_evidence), 12)
+        self.assertTrue(any(item.get("field") == "dynamic.capacitance.ciss_pf" for item in field_evidence))
         self.assertEqual(validate_project(project), [])
 
 
