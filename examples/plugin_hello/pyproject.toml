@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datasheet2spice-hello-plugin"
+version = "0.1.0"
+description = "Minimal datasheet2spice plugin example."
+requires-python = ">=3.10"
+dependencies = ["datasheet2spice"]
+
+[project.entry-points."datasheet2spice.plugins"]
+hello = "datasheet2spice_hello_plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["datasheet2spice_hello_plugin"]

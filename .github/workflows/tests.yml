@@ -1,0 +1,37 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: python -m pip install -e .
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+      - name: CLI smoke
+        run: |
+          datasheet2spice plugins
+          datasheet2spice validate examples/demo_sic_mosfet/device.json
+          datasheet2spice emit examples/demo_sic_mosfet/device.json --out build/ci --all --dialect all
+      - name: Build package
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Wheel install smoke
+        shell: bash
+        run: |
+          python -m venv /tmp/d2s-wheel
+          /tmp/d2s-wheel/bin/python -m pip install dist/*.whl
+          /tmp/d2s-wheel/bin/datasheet2spice --help
+          /tmp/d2s-wheel/bin/datasheet2spice validate examples/demo_sic_mosfet/device.json

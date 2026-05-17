@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datasheet2spice"
+version = "1.0.0"
+description = "Traceable datasheet-to-SPICE model generation for power MOSFETs and SiC MOSFETs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+  { name = "datasheet2spice contributors" }
+]
+keywords = ["spice", "mosfet", "sic", "datasheet", "ltspice", "ngspice", "vdmos"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pymupdf>=1.24"]
+dev = ["build>=1.2", "hatchling>=1.25"]
+
+[project.urls]
+Homepage = "https://github.com/your-org/datasheet2spice"
+Documentation = "https://github.com/your-org/datasheet2spice/tree/main/docs"
+Issues = "https://github.com/your-org/datasheet2spice/issues"
+Source = "https://github.com/your-org/datasheet2spice"
+
+[project.scripts]
+datasheet2spice = "datasheet2spice.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/datasheet2spice"]

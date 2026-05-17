@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "device": {
+    "vendor": "DemoVendor",
+    "part_number": "DEMO_SIC_1200",
+    "type": "n_sic_mosfet",
+    "description": "Synthetic 1200 V SiC MOSFET example for datasheet2spice tests and tutorials.",
+    "datasheet": "synthetic-demo"
+  },
+  "ratings": {
+    "vdss_v": 1200,
+    "id_cont_a": 100,
+    "vgs_on_v": 18,
+    "vgs_off_v": -2
+  },
+  "static": {
+    "vgs_th_v": {
+      "-40": 4.4,
+      "25": 3.8,
+      "175": 3.0
+    },
+    "rds_on_mohm": {
+      "-40": 8.0,
+      "25": 12.0,
+      "100": 18.0,
+      "175": 28.0
+    },
+    "gfs_s": 45,
+    "rg_int_ohm": 1.0
+  },
+  "dynamic": {
+    "capacitance": {
+      "source": "Synthetic smooth curve for tests, not a real product datasheet.",
+      "vds_v": [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 800, 1000],
+      "ciss_pf": [9500, 9400, 9200, 9000, 8600, 8100, 7900, 7850, 7800, 7780, 7750, 7720, 7700, 7700],
+      "coss_pf": [10500, 10000, 9000, 7800, 6000, 2800, 1900, 1300, 750, 520, 360, 230, 205, 200],
+      "crss_pf": [2100, 2050, 1900, 1700, 1200, 300, 210, 130, 55, 30, 18, 11, 9.5, 9.5]
+    },
+    "gate_charge": {
+      "qg_nc": 300,
+      "qgs_nc": 100,
+      "qgd_nc": 45
+    },
+    "channel_fit": {
+      "type": "smooth_idsat_plus_rds",
+      "idsat_reference_a": 68,
+      "vgs_reference_v": 9.5
+    },
+    "body_diode": {
+      "vsd_25c_typ_v": 3.8,
+      "trr_ns": 20,
+      "qrr_nc": 850,
+      "irrm_a": 70
+    }
+  },
+  "parasitics": {
+    "ld_nh": 2.0,
+    "ls_nh": 1.0,
+    "lg_nh": 0.2,
+    "rg_ext_ohm": 4.3
+  },
+  "models": {},
+  "provenance": [
+    {
+      "source": "synthetic",
+      "note": "Example data is synthetic and may be redistributed."
+    }
+  ]
+}

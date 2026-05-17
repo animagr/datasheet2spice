@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "device": {
+    "vendor": "ExampleVendor",
+    "part_number": "MINIMAL_MOSFET",
+    "type": "n_power_mosfet",
+    "description": "Minimal redistributable template for a datasheet2spice project.",
+    "datasheet": ""
+  },
+  "ratings": {
+    "vdss_v": 100,
+    "id_cont_a": 20,
+    "vgs_on_v": 10,
+    "vgs_off_v": 0
+  },
+  "static": {
+    "vgs_th_v": {
+      "25": 3.0
+    },
+    "rds_on_mohm": {
+      "25": 15.0
+    },
+    "gfs_s": 25.0,
+    "rg_int_ohm": 1.0
+  },
+  "dynamic": {
+    "capacitance": {
+      "vds_v": [0.1, 1, 10, 50, 100],
+      "ciss_pf": [2200, 2100, 2050, 2020, 2000],
+      "coss_pf": [1400, 900, 300, 160, 120],
+      "crss_pf": [300, 160, 45, 18, 12]
+    },
+    "gate_charge": {
+      "qg_nc": 60,
+      "qgs_nc": 15,
+      "qgd_nc": 12
+    },
+    "channel_fit": {
+      "idsat_reference_a": 20,
+      "vgs_reference_v": 10
+    },
+    "body_diode": {
+      "vsd_25c_typ_v": 1.0,
+      "trr_ns": 35,
+      "qrr_nc": 80,
+      "irrm_a": 6
+    }
+  },
+  "parasitics": {
+    "ld_nh": 2.0,
+    "ls_nh": 1.0,
+    "lg_nh": 0.5,
+    "rg_ext_ohm": 5.0
+  },
+  "models": {},
+  "provenance": [
+    {
+      "source": "template",
+      "note": "Replace values with datasheet or lab-fitted values before design use."
+    }
+  ]
+}

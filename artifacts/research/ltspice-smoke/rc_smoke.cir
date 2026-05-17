@@ -1,0 +1,7 @@
+* LTspice command-line smoke test
+Vin in 0 PULSE(0 1 0 1n 1n 1u 2u)
+R1 in out 1k
+C1 out 0 1n
+.tran 0 5u 0 10n
+.save V(in) V(out)
+.end
