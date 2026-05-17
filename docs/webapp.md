@@ -23,6 +23,8 @@ http://127.0.0.1:8765
 2. Review the extracted fields, confidence scores, warnings, source snippets,
    rendered datasheet screenshots, recognized table candidates, and
    auto-digitized curve data.
+   Click a parameter row to show its matching PDF crop; click the curve
+   digitization table to compare the data against the source plot.
 3. Correct common parameters in the review form, or edit the project JSON
    directly for deeper changes.
 4. Run parameter fitting and model quality evaluation.

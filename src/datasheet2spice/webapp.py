@@ -436,6 +436,7 @@ INDEX_HTML = r"""<!doctype html>
     .evidence-main img {
       width: 100%; max-height: 380px; object-fit: contain; display: block;
       border: 1px solid var(--line); border-radius: 6px; background: #fff;
+      cursor: zoom-in;
     }
     .evidence-meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 7px 0; font-size: 12px; }
     .evidence-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; padding-right: 2px; }
@@ -448,6 +449,24 @@ INDEX_HTML = r"""<!doctype html>
     .evidence-button.active { border-color: var(--accent); background: #edf6ff; }
     .evidence-empty { min-height: 132px; display: grid; align-content: center; }
     .evidence-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
+    .curve-compare { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
+    .curve-compare table { font-size: 11px; }
+    .curve-compare .compact { max-height: 210px; }
+    .curve-row { cursor: pointer; }
+    .curve-row:hover { background: #f7fbff; }
+    .image-modal {
+      position: fixed; inset: 0; background: rgba(20, 24, 31, .76); z-index: 999;
+      display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 18px;
+    }
+    .image-modal-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      color: #fff; font-size: 13px;
+    }
+    .image-modal button { background: #fff; color: var(--ink); border-color: #fff; }
+    .image-modal img {
+      max-width: 100%; max-height: 100%; place-self: center; object-fit: contain;
+      background: #fff; border-radius: 6px;
+    }
     .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .tool-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .raster-result { max-height: 180px; overflow: auto; font-size: 12px; }
@@ -565,6 +584,7 @@ INDEX_HTML = r"""<!doctype html>
     let lastExtractData = null;
     let currentEvidence = [];
     let currentFindings = [];
+    let currentCurve = null;
     let selectedEvidenceIndex = -1;
     document.getElementById("sessionLabel").textContent = session;
     const setStatus = (id, text, kind = "") => {
@@ -726,15 +746,22 @@ INDEX_HTML = r"""<!doctype html>
       `).join("");
     }
     function renderCurve(curve) {
+      currentCurve = curve;
       if (!curve) { document.getElementById("curveBox").innerHTML = `<div class="status warn">未识别到可自动数字化的 Ciss/Coss/Crss 矢量曲线。</div>`; return; }
       const data = curve.data || {};
       const rows = (data.vds_v || []).map((v, i) => `
-        <tr><td>${v}</td><td>${data.ciss_pf[i]}</td><td>${data.coss_pf[i]}</td><td>${data.crss_pf[i]}</td></tr>
+        <tr class="curve-row"><td>${v}</td><td>${data.ciss_pf[i]}</td><td>${data.coss_pf[i]}</td><td>${data.crss_pf[i]}</td></tr>
       `).join("");
       document.getElementById("curveBox").innerHTML = `
-        <div><span class="pill">page ${curve.page}</span><span class="pill">confidence ${Math.round(curve.confidence * 100)}%</span></div>
+        <div class="row">
+          <span class="pill">page ${curve.page}</span>
+          <span class="pill">confidence ${Math.round(curve.confidence * 100)}%</span>
+          <button class="secondary" id="curveEvidenceBtn">查看曲线原图对照</button>
+        </div>
         <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
       `;
+      document.getElementById("curveEvidenceBtn").addEventListener("click", selectCurveEvidence);
+      document.querySelectorAll(".curve-row").forEach(row => row.addEventListener("click", selectCurveEvidence));
     }
     function renderTables(tables) {
       if (!tables.length) { document.getElementById("tablesBox").textContent = "未识别到表格候选。"; return; }
@@ -763,6 +790,13 @@ INDEX_HTML = r"""<!doctype html>
         }
       }
     }
+    function selectCurveEvidence() {
+      const curveIndex = currentEvidence.findIndex(item => item.kind === "curve_plot");
+      if (curveIndex < 0) return;
+      document.querySelectorAll("[data-finding-field]").forEach(row => row.classList.remove("active"));
+      selectedEvidenceIndex = curveIndex;
+      renderEvidence(currentEvidence);
+    }
     function renderEvidence(evidence) {
       const box = document.getElementById("evidenceBox");
       if (!evidence.length) {
@@ -779,7 +813,7 @@ INDEX_HTML = r"""<!doctype html>
       const item = evidence[selectedEvidenceIndex];
       box.innerHTML = `
         <div class="evidence-main">
-          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" />
+          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" data-evidence-zoom="1" />
           <div class="evidence-meta">
             <span class="pill">${escapeHtml(evidenceTitle(item))}</span>
             <span class="pill">page ${escapeHtml(item.page)}</span>
@@ -787,8 +821,12 @@ INDEX_HTML = r"""<!doctype html>
             ${item.score ? `<span class="pill">score ${Math.round(item.score * 100)}%</span>` : ""}
           </div>
           <div class="mono">${escapeHtml((item.bbox || []).join(", "))}</div>
-          ${item.bbox ? `<button class="secondary" data-evidence-fill="1">填入扫描图框</button>` : ""}
+          <div class="row" style="margin-top: 7px;">
+            <button class="secondary" data-evidence-zoom-btn="1">放大查看完整截图</button>
+            ${item.bbox ? `<button class="secondary" data-evidence-fill="1">填入扫描图框</button>` : ""}
+          </div>
         </div>
+        ${renderCurveCompare(item)}
         <div class="evidence-list">
           ${evidence.map((entry, idx) => `
             <button class="evidence-button ${idx === selectedEvidenceIndex ? "active" : ""}" data-evidence-select="${idx}">
@@ -807,8 +845,50 @@ INDEX_HTML = r"""<!doctype html>
       });
       const fillButton = box.querySelector("[data-evidence-fill]");
       if (fillButton) fillButton.addEventListener("click", () => fillRasterFromEvidence(currentEvidence[selectedEvidenceIndex]));
+      box.querySelectorAll("[data-evidence-zoom], [data-evidence-zoom-btn]").forEach(el => {
+        el.addEventListener("click", () => openEvidenceImage(currentEvidence[selectedEvidenceIndex]));
+      });
       const curveEvidence = evidence.find(item => item.kind === "curve_plot" && item.bbox);
       if (curveEvidence && !document.getElementById("rasterRect").value.trim()) fillRasterFromEvidence(curveEvidence);
+    }
+    function renderCurveCompare(item) {
+      if (!currentCurve || item.kind !== "curve_plot") return "";
+      const data = currentCurve.data || {};
+      const rows = (data.vds_v || []).map((v, i) => `
+        <tr><td>${v}</td><td>${data.ciss_pf?.[i] ?? ""}</td><td>${data.coss_pf?.[i] ?? ""}</td><td>${data.crss_pf?.[i] ?? ""}</td></tr>
+      `).join("");
+      return `
+        <div class="curve-compare">
+          <h3>曲线数据对照</h3>
+          <div class="compact">
+            <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
+          </div>
+        </div>
+      `;
+    }
+    function openEvidenceImage(item) {
+      if (!item || !item.url) return;
+      const existing = document.querySelector(".image-modal");
+      if (existing) existing.remove();
+      const modal = document.createElement("div");
+      modal.className = "image-modal";
+      modal.innerHTML = `
+        <div class="image-modal-bar">
+          <div><b>${escapeHtml(evidenceTitle(item))}</b> · page ${escapeHtml(item.page || "")} · ${escapeHtml((item.bbox || []).join(", "))}</div>
+          <button type="button" data-modal-close="1">关闭</button>
+        </div>
+        <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" />
+      `;
+      modal.addEventListener("click", event => {
+        if (event.target === modal || event.target.dataset.modalClose) modal.remove();
+      });
+      document.addEventListener("keydown", function closeOnEscape(event) {
+        if (event.key === "Escape") {
+          modal.remove();
+          document.removeEventListener("keydown", closeOnEscape);
+        }
+      });
+      document.body.appendChild(modal);
     }
     function evidenceTitle(item) {
       if (item.kind === "field_finding") return item.field || "参数截图";
