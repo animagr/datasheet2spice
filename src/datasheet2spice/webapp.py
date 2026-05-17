@@ -9,6 +9,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import re
+from urllib.parse import urlparse
 import uuid
 import zipfile
 from typing import Any
@@ -45,14 +46,18 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
     workspace = DEFAULT_WEB_OUT
 
     def do_GET(self) -> None:
-        if self.path in {"/", "/index.html"}:
+        request_path = urlparse(self.path).path
+        if request_path in {"/", "/index.html"}:
             self._send_text(INDEX_HTML, "text/html; charset=utf-8")
             return
-        if self.path.startswith("/download/"):
-            self._send_download(self.path)
+        if request_path.startswith("/download/"):
+            self._send_download(request_path)
             return
-        if self.path.startswith("/assets/"):
-            self._send_asset(self.path)
+        if request_path.startswith("/assets/"):
+            self._send_asset(request_path)
+            return
+        if request_path.startswith("/api/session/"):
+            self._send_session_result(request_path)
             return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
@@ -98,21 +103,21 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
                 tables=result.get("tables", []),
                 curve_digitization=result.get("curve_digitization"),
             )
-            self._send_json(
-                {
-                    "session": session,
-                    "filename": pdf_path.name,
-                    "project": project.data,
-                    "project_path": str(project_path),
-                    "findings": result["findings"],
-                    "warnings": result["warnings"],
-                    "tables": result.get("tables", []),
-                    "curve_digitization": result.get("curve_digitization"),
-                    "evidence": evidence,
-                    "fit": fit_project_parameters(project)["fits"],
-                    "evaluation": evaluate_project_model(project),
-                }
-            )
+            response = {
+                "session": session,
+                "filename": pdf_path.name,
+                "project": project.data,
+                "project_path": str(project_path),
+                "findings": result["findings"],
+                "warnings": result["warnings"],
+                "tables": result.get("tables", []),
+                "curve_digitization": result.get("curve_digitization"),
+                "evidence": evidence,
+                "fit": fit_project_parameters(project)["fits"],
+                "evaluation": evaluate_project_model(project),
+            }
+            (session_dir / "extract_result.json").write_text(json.dumps(response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            self._send_json(response)
         except Exception as exc:
             self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -214,6 +219,17 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def _send_session_result(self, request_path: str) -> None:
+        match = re.fullmatch(r"/api/session/([A-Za-z0-9_-]+)", request_path)
+        if not match:
+            self._send_json({"error": "invalid session path"}, HTTPStatus.BAD_REQUEST)
+            return
+        path = self.workspace / match.group(1) / "extract_result.json"
+        if not path.exists() or not path.is_file():
+            self._send_json({"error": "session result not found"}, HTTPStatus.NOT_FOUND)
+            return
+        self._send_text(path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
 
 
 def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: list[str], dialects: list[str]) -> dict[str, Any]:
@@ -403,13 +419,23 @@ INDEX_HTML = r"""<!doctype html>
       max-height: calc(100vh - 138px); overflow: auto;
     }
     .panel-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-    .evidence-stack { display: grid; gap: 10px; }
-    .evidence-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
-    .evidence-card img {
-      width: 100%; max-height: 260px; object-fit: contain; display: block;
+    .evidence-viewer { display: grid; gap: 8px; }
+    .evidence-main { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
+    .evidence-main img {
+      width: 100%; max-height: 380px; object-fit: contain; display: block;
       border: 1px solid var(--line); border-radius: 6px; background: #fff;
     }
     .evidence-meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 7px 0; font-size: 12px; }
+    .evidence-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; padding-right: 2px; }
+    .evidence-button {
+      display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; width: 100%;
+      border: 1px solid var(--line); background: #fff; color: var(--ink);
+      text-align: left; padding: 7px 8px; font-weight: 500;
+    }
+    .evidence-button small { grid-column: 1 / -1; color: var(--muted); font-family: Consolas, monospace; overflow-wrap: anywhere; }
+    .evidence-button.active { border-color: var(--accent); background: #edf6ff; }
+    .evidence-empty { min-height: 132px; display: grid; align-content: center; }
+    .evidence-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
     .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .tool-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .raster-result { max-height: 180px; overflow: auto; font-size: 12px; }
@@ -467,7 +493,7 @@ INDEX_HTML = r"""<!doctype html>
           </div>
           <aside class="evidence-panel">
             <div class="panel-title">datasheet 截图</div>
-            <div id="evidenceBox" class="evidence-stack"></div>
+            <div id="evidenceBox" class="evidence-viewer"></div>
             <div class="evidence-card" style="margin-top: 10px;">
               <h3>扫描图数字化</h3>
               <div class="tool-grid">
@@ -522,8 +548,11 @@ INDEX_HTML = r"""<!doctype html>
     </section>
   </main>
   <script>
-    const session = crypto.randomUUID();
+    const requestedSession = new URLSearchParams(location.search).get("session");
+    const session = requestedSession || crypto.randomUUID();
     let lastExtractData = null;
+    let currentEvidence = [];
+    let selectedEvidenceIndex = -1;
     document.getElementById("sessionLabel").textContent = session;
     const setStatus = (id, text, kind = "") => {
       const el = document.getElementById(id);
@@ -540,13 +569,26 @@ INDEX_HTML = r"""<!doctype html>
       const res = await fetch("/api/extract", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok || data.error) { setStatus("extractStatus", data.error || "提取失败", "bad"); return; }
+      applyExtractionData(data, `已提取 ${data.project.device.part_number}，请检查右侧 JSON。`);
+    });
+    if (requestedSession) {
+      loadStoredSession(requestedSession);
+    }
+    async function loadStoredSession(sessionId) {
+      setStatus("extractStatus", "正在载入已有提取结果...");
+      const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
+      const data = await res.json();
+      if (!res.ok || data.error) { setStatus("extractStatus", data.error || "未找到会话结果。", "warn"); return; }
+      applyExtractionData(data, `已载入 ${data.project.device.part_number} 的历史提取结果。`);
+    }
+    function applyExtractionData(data, statusText) {
       lastExtractData = data;
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
       document.getElementById("fitBtn").disabled = false;
       document.getElementById("applyReviewBtn").disabled = false;
       document.getElementById("rasterBtn").disabled = false;
-      setStatus("extractStatus", `已提取 ${data.project.device.part_number}，请检查右侧 JSON。`);
+      setStatus("extractStatus", statusText);
       document.getElementById("warnings").innerHTML = (data.warnings || []).map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
       document.getElementById("findings").innerHTML = (data.findings || []).map(f => `
         <tr>
@@ -558,9 +600,10 @@ INDEX_HTML = r"""<!doctype html>
       renderReviewFields(data.project);
       renderCurve(data.curve_digitization);
       renderTables(data.tables || []);
+      selectedEvidenceIndex = -1;
       renderEvidence(data.evidence || []);
       renderEvaluation(data.evaluation, data.fit || []);
-    });
+    }
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
       let project;
       try { project = JSON.parse(document.getElementById("projectJson").value); }
@@ -685,27 +728,57 @@ INDEX_HTML = r"""<!doctype html>
     function renderEvidence(evidence) {
       const box = document.getElementById("evidenceBox");
       if (!evidence.length) {
-        box.innerHTML = `<div class="status warn">未生成截图证据。扫描版 PDF 可先在数字化工具中手动输入页码和图框。</div>`;
+        currentEvidence = [];
+        selectedEvidenceIndex = -1;
+        box.innerHTML = `<div class="status warn evidence-empty">未生成截图证据。扫描版 PDF 可先在数字化工具中手动输入页码和图框。</div>`;
         return;
       }
-      box.innerHTML = evidence.map((item, idx) => `
-        <div class="evidence-card">
-          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.label || "datasheet evidence")}" />
+      currentEvidence = evidence;
+      if (selectedEvidenceIndex < 0 || selectedEvidenceIndex >= evidence.length) {
+        const preferredIndex = evidence.findIndex(item => item.kind === "curve_plot");
+        selectedEvidenceIndex = preferredIndex >= 0 ? preferredIndex : 0;
+      }
+      const item = evidence[selectedEvidenceIndex];
+      box.innerHTML = `
+        <div class="evidence-main">
+          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" />
           <div class="evidence-meta">
-            <span class="pill">${escapeHtml(item.kind)}</span>
+            <span class="pill">${escapeHtml(evidenceTitle(item))}</span>
             <span class="pill">page ${escapeHtml(item.page)}</span>
             ${item.confidence ? `<span class="pill">${Math.round(item.confidence * 100)}%</span>` : ""}
             ${item.score ? `<span class="pill">score ${Math.round(item.score * 100)}%</span>` : ""}
           </div>
           <div class="mono">${escapeHtml((item.bbox || []).join(", "))}</div>
-          ${item.bbox ? `<button class="secondary" data-evidence-idx="${idx}">填入图框</button>` : ""}
+          ${item.bbox ? `<button class="secondary" data-evidence-fill="1">填入扫描图框</button>` : ""}
         </div>
-      `).join("");
-      box.querySelectorAll("[data-evidence-idx]").forEach(btn => {
-        btn.addEventListener("click", () => fillRasterFromEvidence(evidence[Number(btn.dataset.evidenceIdx)]));
+        <div class="evidence-list">
+          ${evidence.map((entry, idx) => `
+            <button class="evidence-button ${idx === selectedEvidenceIndex ? "active" : ""}" data-evidence-select="${idx}">
+              <span>${idx + 1}. ${escapeHtml(evidenceTitle(entry))}</span>
+              <span>p${escapeHtml(entry.page)}</span>
+              <small>${escapeHtml((entry.bbox || []).join(", "))}</small>
+            </button>
+          `).join("")}
+        </div>
+      `;
+      box.querySelectorAll("[data-evidence-select]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          selectedEvidenceIndex = Number(btn.dataset.evidenceSelect);
+          renderEvidence(currentEvidence);
+        });
       });
+      const fillButton = box.querySelector("[data-evidence-fill]");
+      if (fillButton) fillButton.addEventListener("click", () => fillRasterFromEvidence(currentEvidence[selectedEvidenceIndex]));
       const curveEvidence = evidence.find(item => item.kind === "curve_plot" && item.bbox);
       if (curveEvidence) fillRasterFromEvidence(curveEvidence);
+    }
+    function evidenceTitle(item) {
+      const labels = {
+        curve_plot: "曲线图",
+        table_candidate: "表格截图",
+        page_context: "页面上下文"
+      };
+      return labels[item.kind] || item.label || item.kind || "截图证据";
     }
     function fillRasterFromEvidence(item) {
       document.getElementById("rasterPage").value = item.page || 1;

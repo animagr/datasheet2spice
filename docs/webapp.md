@@ -30,6 +30,9 @@ http://127.0.0.1:8765
 6. Generate and download the ZIP model bundle.
 
 Generated files are written under `build/webapp/<session>/generated/`.
+Extraction results are cached under `build/webapp/<session>/extract_result.json`;
+open `http://127.0.0.1:8765/?session=<session>` to replay a previous review
+state for visual regression or continued checking.
 
 ## Extraction Scope
 
