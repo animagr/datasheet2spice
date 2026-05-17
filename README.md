@@ -34,6 +34,13 @@ datasheet2spice validate examples/demo_sic_mosfet/device.json
 datasheet2spice report examples/demo_sic_mosfet/device.json
 ```
 
+Run the local browser workbench for PDF upload and model generation:
+
+```powershell
+python -m pip install -e .[pdf]
+datasheet2spice serve --host 127.0.0.1 --port 8765
+```
+
 Ten-minute path for a new device:
 
 ```powershell
@@ -93,6 +100,7 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [Architecture](docs/architecture.md)
 - [Schema](docs/schema.md)
 - [Plugins](docs/plugins.md)
+- [Browser Workbench](docs/webapp.md)
 - [Modeling Notes](docs/modeling.md)
 - [Limitations](docs/limitations.md)
 - [License Strategy](docs/license_strategy.md)

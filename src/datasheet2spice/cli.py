@@ -142,6 +142,13 @@ def cmd_run_ltspice(args: argparse.Namespace) -> int:
     return 1 if result["returncode"] or result["fatal"] else 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    from .webapp import serve
+
+    serve(host=args.host, port=args.port, out_dir=args.out)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="datasheet2spice")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -189,6 +196,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ltspice", required=True)
     p.add_argument("--timeout", type=int, default=120)
     p.set_defaults(func=cmd_run_ltspice)
+
+    p = sub.add_parser("serve", help="run the local browser PDF extraction workbench")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--out", default="build/webapp")
+    p.set_defaults(func=cmd_serve)
     return parser
 
 

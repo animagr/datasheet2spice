@@ -4,10 +4,11 @@
 model generator.
 
 - Generated models are not vendor-qualified or safety-qualified.
-- Datasheet paths stored by `init` are provenance records; v1.0 does not fully
-  parse arbitrary uploaded PDFs into finished models.
-- CSV curve import is the reliable v1.0 path for `Ciss/Coss/Crss`; optional PDF
-  vector extraction is experimental and plot-layout dependent.
+- Datasheet paths stored by `init` are provenance records. The browser
+  workbench can upload and heuristically parse PDFs, but arbitrary datasheets
+  still require human review.
+- CSV curve import remains the most reliable path for `Ciss/Coss/Crss`; PDF
+  text/vector extraction is experimental and layout dependent.
 - The ABM capacitance implementation is a starter table model. Higher accuracy
   and faster convergence usually need smoothed charge functions fitted to
   `C(V)`, `Qg`, `Eoss`, and switching waveforms.
