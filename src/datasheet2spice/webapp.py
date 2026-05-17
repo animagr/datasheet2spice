@@ -367,7 +367,7 @@ INDEX_HTML = r"""<!doctype html>
     }
     h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
     main {
-      display: grid; grid-template-columns: 300px minmax(620px, 1.6fr) minmax(380px, .8fr);
+      display: grid; grid-template-columns: 300px minmax(760px, 1.7fr) minmax(380px, .8fr);
       gap: 16px; padding: 16px; max-width: 1880px; margin: 0 auto;
     }
     section {
@@ -412,10 +412,19 @@ INDEX_HTML = r"""<!doctype html>
     .findings-table .field-col { width: 27%; }
     .findings-table .value-col { width: 18%; }
     .findings-table .confidence-col { width: 72px; }
+    .source-cell { position: relative; padding-right: 48px; }
     .snippet-text {
       color: var(--muted); line-height: 1.35; max-height: 4.1em; overflow: hidden;
       display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
     }
+    .evidence-float-btn {
+      position: absolute; top: 7px; right: 8px; width: 32px; height: 32px;
+      display: inline-grid; place-items: center; padding: 0; border-radius: 50%;
+      border: 1px solid #9ac7f5; background: #f4f9ff; color: var(--accent);
+      font-size: 12px; font-weight: 700;
+    }
+    .evidence-float-btn:hover,
+    .evidence-float-btn:focus { background: #e7f2ff; border-color: var(--accent); outline: 2px solid rgba(20, 112, 204, .16); }
     .mono { font-family: Consolas, monospace; }
     .files a { color: var(--accent); text-decoration: none; }
     .preview { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; max-height: 260px; overflow: auto; }
@@ -424,30 +433,20 @@ INDEX_HTML = r"""<!doctype html>
     .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .review-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
-    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; align-items: start; }
-    .evidence-panel {
-      position: sticky; top: 76px; align-self: start;
-      border-left: 1px solid var(--line); padding-left: 12px; min-width: 0;
-      max-height: calc(100vh - 138px); overflow: auto;
-    }
+    .review-layout { display: block; }
     .panel-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-    .evidence-viewer { display: grid; gap: 8px; }
-    .evidence-main { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
-    .evidence-main img {
-      width: 100%; max-height: 380px; object-fit: contain; display: block;
+    .evidence-popover {
+      position: fixed; z-index: 800; width: min(640px, calc(100vw - 28px));
+      max-height: min(620px, calc(100vh - 28px)); overflow: auto;
+      border: 1px solid #b6d6f7; border-radius: 8px; padding: 10px;
+      background: #fff; box-shadow: 0 18px 42px rgba(18, 35, 55, .23);
+    }
+    .evidence-popover img {
+      width: 100%; max-height: 430px; object-fit: contain; display: block;
       border: 1px solid var(--line); border-radius: 6px; background: #fff;
       cursor: zoom-in;
     }
     .evidence-meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 7px 0; font-size: 12px; }
-    .evidence-list { display: grid; gap: 6px; max-height: 190px; overflow: auto; padding-right: 2px; }
-    .evidence-button {
-      display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; width: 100%;
-      border: 1px solid var(--line); background: #fff; color: var(--ink);
-      text-align: left; padding: 7px 8px; font-weight: 500;
-    }
-    .evidence-button small { grid-column: 1 / -1; color: var(--muted); font-family: Consolas, monospace; overflow-wrap: anywhere; }
-    .evidence-button.active { border-color: var(--accent); background: #edf6ff; }
-    .evidence-empty { min-height: 132px; display: grid; align-content: center; }
     .evidence-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
     .curve-compare { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
     .curve-compare table { font-size: 11px; }
@@ -480,7 +479,7 @@ INDEX_HTML = r"""<!doctype html>
     }
     @media (max-width: 900px) {
       .review-layout { grid-template-columns: 1fr; }
-      .evidence-panel { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; max-height: none; }
+      .evidence-popover { width: calc(100vw - 20px); }
     }
   </style>
 </head>
@@ -525,11 +524,7 @@ INDEX_HTML = r"""<!doctype html>
               <h3>识别到的表格</h3>
               <div id="tablesBox" class="compact"></div>
             </div>
-          </div>
-          <aside class="evidence-panel">
-            <div class="panel-title">datasheet 截图</div>
-            <div id="evidenceBox" class="evidence-viewer"></div>
-            <div class="evidence-card" style="margin-top: 10px;">
+            <div class="evidence-card">
               <h3>扫描图数字化</h3>
               <div class="tool-grid">
                 <label>页码<input id="rasterPage" value="1" /></label>
@@ -546,7 +541,7 @@ INDEX_HTML = r"""<!doctype html>
               <div id="rasterStatus" class="status">上传 PDF 后可用。</div>
               <div id="rasterResult" class="raster-result"></div>
             </div>
-          </aside>
+          </div>
         </div>
       </div>
     </section>
@@ -633,17 +628,20 @@ INDEX_HTML = r"""<!doctype html>
           <td class="mono">${escapeHtml(f.field)}</td>
           <td class="mono">${escapeHtml(JSON.stringify(f.value))} ${escapeHtml(f.unit || "")}</td>
           <td>${Math.round((f.confidence || 0) * 100)}%</td>
-          <td><div class="snippet-text">${escapeHtml(f.snippet || "")}</div></td>
+          <td class="source-cell">
+            <div class="snippet-text">${escapeHtml(f.snippet || "")}</div>
+            <button type="button" class="evidence-float-btn" data-evidence-hover="1" data-evidence-field="${escapeHtml(f.field)}" title="悬停查看截图，点击放大">图</button>
+          </td>
         </tr>`).join("");
       document.querySelectorAll("[data-finding-field]").forEach(row => {
-        row.addEventListener("click", () => selectFinding(row.dataset.findingField));
+        row.addEventListener("click", () => selectFinding(row.dataset.findingField, true));
       });
       renderReviewFields(data.project);
       renderCurve(data.curve_digitization);
       renderTables(data.tables || []);
       selectedEvidenceIndex = -1;
       renderEvidence(data.evidence || []);
-      if (currentFindings.length) selectFinding(currentFindings[0].field);
+      if (currentFindings.length) selectFinding(currentFindings[0].field, false);
       renderEvaluation(data.evaluation, data.fit || []);
     }
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
@@ -760,12 +758,11 @@ INDEX_HTML = r"""<!doctype html>
         <div class="row">
           <span class="pill">page ${curve.page}</span>
           <span class="pill">confidence ${Math.round(curve.confidence * 100)}%</span>
-          <button class="secondary" id="curveEvidenceBtn">查看曲线原图对照</button>
+          <button class="secondary" id="curveEvidenceBtn" data-evidence-hover="1" data-evidence-kind="curve">查看曲线原图对照</button>
         </div>
         <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
       `;
-      document.getElementById("curveEvidenceBtn").addEventListener("click", selectCurveEvidence);
-      document.querySelectorAll(".curve-row").forEach(row => row.addEventListener("click", selectCurveEvidence));
+      document.querySelectorAll(".curve-row").forEach(row => row.addEventListener("click", event => selectCurveEvidence(event.currentTarget)));
     }
     function renderTables(tables) {
       if (!tables.length) { document.getElementById("tablesBox").textContent = "未识别到表格候选。"; return; }
@@ -774,39 +771,38 @@ INDEX_HTML = r"""<!doctype html>
         <table><tbody>${table.rows.slice(0, 6).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>
       `).join("");
     }
-    function selectFinding(field) {
+    function selectFinding(field, showPreview = false) {
       if (!field) return;
       document.querySelectorAll("[data-finding-field]").forEach(row => {
         row.classList.toggle("active", row.dataset.findingField === field);
       });
-      const exactIndex = currentEvidence.findIndex(item => item.kind === "field_finding" && item.field === field);
-      if (exactIndex >= 0) {
-        selectedEvidenceIndex = exactIndex;
-        renderEvidence(currentEvidence);
-        return;
-      }
-      const finding = currentFindings.find(item => item.field === field);
-      if (finding && finding.page) {
-        const pageIndex = currentEvidence.findIndex(item => Number(item.page) === Number(finding.page));
-        if (pageIndex >= 0) {
-          selectedEvidenceIndex = pageIndex;
-          renderEvidence(currentEvidence);
-        }
+      if (showPreview) {
+        const trigger = [...document.querySelectorAll("[data-evidence-field]")].find(btn => btn.dataset.evidenceField === field);
+        const item = evidenceForField(field);
+        if (trigger && item) showEvidencePopover(trigger, item);
       }
     }
-    function selectCurveEvidence() {
-      const curveIndex = currentEvidence.findIndex(item => item.kind === "curve_plot");
-      if (curveIndex < 0) return;
+    function evidenceForField(field) {
+      const exact = currentEvidence.find(item => item.kind === "field_finding" && item.field === field);
+      if (exact) return exact;
+      const finding = currentFindings.find(item => item.field === field);
+      if (!finding || !finding.page) return null;
+      return currentEvidence.find(item => Number(item.page) === Number(finding.page)) || null;
+    }
+    function curveEvidenceItem() {
+      return currentEvidence.find(item => item.kind === "curve_plot") || null;
+    }
+    function selectCurveEvidence(anchor) {
+      const item = curveEvidenceItem();
+      if (!item) return;
       document.querySelectorAll("[data-finding-field]").forEach(row => row.classList.remove("active"));
-      selectedEvidenceIndex = curveIndex;
-      renderEvidence(currentEvidence);
+      showEvidencePopover(anchor || document.getElementById("curveEvidenceBtn"), item);
     }
     function renderEvidence(evidence) {
-      const box = document.getElementById("evidenceBox");
       if (!evidence.length) {
         currentEvidence = [];
         selectedEvidenceIndex = -1;
-        box.innerHTML = `<div class="status warn evidence-empty">未生成截图证据。扫描版 PDF 可先在数字化工具中手动输入页码和图框。</div>`;
+        wireEvidenceTriggers();
         return;
       }
       currentEvidence = evidence;
@@ -814,64 +810,97 @@ INDEX_HTML = r"""<!doctype html>
         const preferredIndex = evidence.findIndex(item => item.kind === "curve_plot");
         selectedEvidenceIndex = preferredIndex >= 0 ? preferredIndex : 0;
       }
-      const item = evidence[selectedEvidenceIndex];
-      box.innerHTML = `
-        <div class="evidence-main">
-          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(evidenceTitle(item))}" data-evidence-zoom="1" />
-          <div class="evidence-meta">
-            <span class="pill">${escapeHtml(evidenceTitle(item))}</span>
-            <span class="pill">page ${escapeHtml(item.page)}</span>
-            ${item.confidence ? `<span class="pill">${Math.round(item.confidence * 100)}%</span>` : ""}
-            ${item.score ? `<span class="pill">score ${Math.round(item.score * 100)}%</span>` : ""}
-          </div>
-          <div class="mono">${escapeHtml((item.bbox || []).join(", "))}</div>
-          <div class="row" style="margin-top: 7px;">
-            <button class="secondary" data-evidence-zoom-btn="1">放大查看上下文截图</button>
-            ${item.bbox ? `<button class="secondary" data-evidence-fill="1">填入扫描图框</button>` : ""}
-          </div>
-        </div>
-        ${renderCurveCompare(item)}
-        <div class="evidence-list">
-          ${evidence.map((entry, idx) => `
-            <button class="evidence-button ${idx === selectedEvidenceIndex ? "active" : ""}" data-evidence-select="${idx}">
-              <span>${idx + 1}. ${escapeHtml(evidenceTitle(entry))}</span>
-              <span>p${escapeHtml(entry.page)}</span>
-              <small>${escapeHtml((entry.bbox || []).join(", "))}</small>
-            </button>
-          `).join("")}
-        </div>
-      `;
-      box.querySelectorAll("[data-evidence-select]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          selectedEvidenceIndex = Number(btn.dataset.evidenceSelect);
-          renderEvidence(currentEvidence);
-        });
-      });
-      const fillButton = box.querySelector("[data-evidence-fill]");
-      if (fillButton) fillButton.addEventListener("click", () => fillRasterFromEvidence(currentEvidence[selectedEvidenceIndex]));
-      box.querySelectorAll("[data-evidence-zoom], [data-evidence-zoom-btn]").forEach(el => {
-        el.addEventListener("click", () => openEvidenceImage(currentEvidence[selectedEvidenceIndex]));
-      });
+      wireEvidenceTriggers();
       const curveEvidence = evidence.find(item => item.kind === "curve_plot" && item.bbox);
       if (curveEvidence && !document.getElementById("rasterRect").value.trim()) fillRasterFromEvidence(curveEvidence);
     }
-    function renderCurveCompare(item) {
-      if (!currentCurve || item.kind !== "curve_plot") return "";
-      const data = currentCurve.data || {};
-      const rows = (data.vds_v || []).map((v, i) => `
-        <tr><td>${v}</td><td>${data.ciss_pf?.[i] ?? ""}</td><td>${data.coss_pf?.[i] ?? ""}</td><td>${data.crss_pf?.[i] ?? ""}</td></tr>
-      `).join("");
-      return `
-        <div class="curve-compare">
-          <h3>曲线数据对照</h3>
-          <div class="compact">
-            <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
-          </div>
+    function evidenceItemForTrigger(trigger) {
+      if (trigger.dataset.evidenceKind === "curve") return curveEvidenceItem();
+      if (trigger.dataset.evidenceField) return evidenceForField(trigger.dataset.evidenceField);
+      return null;
+    }
+    function wireEvidenceTriggers() {
+      document.querySelectorAll("[data-evidence-hover]").forEach(trigger => {
+        if (trigger.dataset.evidenceWired) return;
+        trigger.dataset.evidenceWired = "1";
+        trigger.addEventListener("mouseenter", () => {
+          const item = evidenceItemForTrigger(trigger);
+          if (item) showEvidencePopover(trigger, item);
+        });
+        trigger.addEventListener("mouseleave", () => hideEvidencePopover(180));
+        trigger.addEventListener("focus", () => {
+          const item = evidenceItemForTrigger(trigger);
+          if (item) showEvidencePopover(trigger, item);
+        });
+        trigger.addEventListener("blur", () => hideEvidencePopover(120));
+        trigger.addEventListener("click", event => {
+          event.stopPropagation();
+          const item = evidenceItemForTrigger(trigger);
+          if (item) openEvidenceImage(item);
+        });
+      });
+    }
+    let evidencePopover = null;
+    let evidencePopoverTimer = null;
+    function hideEvidencePopover(delay = 0) {
+      clearTimeout(evidencePopoverTimer);
+      evidencePopoverTimer = setTimeout(() => {
+        if (evidencePopover) {
+          evidencePopover.remove();
+          evidencePopover = null;
+        }
+      }, delay);
+    }
+    function showEvidencePopover(anchor, item) {
+      if (!anchor || !item || !item.url) return;
+      clearTimeout(evidencePopoverTimer);
+      if (evidencePopover) evidencePopover.remove();
+      const imageUrl = item.detail_url || item.url;
+      const bbox = item.detail_bbox || item.bbox || [];
+      const popover = document.createElement("div");
+      popover.className = "evidence-popover";
+      popover.innerHTML = `
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(evidenceTitle(item))}" data-popover-zoom="1" />
+        <div class="evidence-meta">
+          <span class="pill">${escapeHtml(evidenceTitle(item))}</span>
+          <span class="pill">page ${escapeHtml(item.page || "")}</span>
+          ${item.confidence != null ? `<span class="pill">${Math.round(item.confidence * 100)}%</span>` : ""}
+          ${item.score != null ? `<span class="pill">score ${Math.round(item.score * 100)}%</span>` : ""}
+        </div>
+        <div class="mono">${escapeHtml(bbox.join(", "))}</div>
+        <div class="row" style="margin-top: 7px;">
+          <button class="secondary" data-popover-open="1">放大查看</button>
+          ${item.bbox ? `<button class="secondary" data-popover-fill="1">填入扫描图框</button>` : ""}
         </div>
       `;
+      popover.addEventListener("mouseenter", () => clearTimeout(evidencePopoverTimer));
+      popover.addEventListener("mouseleave", () => hideEvidencePopover(160));
+      popover.querySelector("[data-popover-zoom]").addEventListener("click", () => openEvidenceImage(item));
+      popover.querySelector("[data-popover-open]").addEventListener("click", () => openEvidenceImage(item));
+      const fillButton = popover.querySelector("[data-popover-fill]");
+      if (fillButton) fillButton.addEventListener("click", () => fillRasterFromEvidence(item));
+      document.body.appendChild(popover);
+      evidencePopover = popover;
+      positionEvidencePopover(anchor, popover);
+      popover.querySelector("img").addEventListener("load", () => positionEvidencePopover(anchor, popover), { once: true });
+    }
+    function positionEvidencePopover(anchor, popover) {
+      const margin = 10;
+      const rect = anchor.getBoundingClientRect();
+      const popRect = popover.getBoundingClientRect();
+      let left = Math.min(window.innerWidth - popRect.width - margin, Math.max(margin, rect.right - popRect.width));
+      let top = rect.bottom + 8;
+      if (top + popRect.height > window.innerHeight - margin && rect.top - popRect.height - 8 > margin) {
+        top = rect.top - popRect.height - 8;
+      } else {
+        top = Math.min(top, window.innerHeight - popRect.height - margin);
+      }
+      popover.style.left = `${Math.max(margin, left)}px`;
+      popover.style.top = `${Math.max(margin, top)}px`;
     }
     function openEvidenceImage(item) {
       if (!item || !item.url) return;
+      hideEvidencePopover(0);
       const existing = document.querySelector(".image-modal");
       if (existing) existing.remove();
       const imageUrl = item.detail_url || item.url;
