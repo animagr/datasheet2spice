@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Browser Workbench
 
 The local browser workbench lets a user upload a MOSFET datasheet PDF, review

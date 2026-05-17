@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Plugin Interfaces
 
 The built-in plugin registry supports emitters, extractors, and validators.

@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # datasheet2spice Documentation
 
 - [Quick Start](quickstart.md)

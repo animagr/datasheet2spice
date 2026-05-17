@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Limitations
 
 `datasheet2spice` v1.0 is a semi-automatic model-starter toolkit, not a vendor

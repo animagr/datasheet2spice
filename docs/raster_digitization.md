@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Raster Plot Digitization
 
 Scanned datasheets and bitmap-only PDF plots cannot be handled reliably by PDF

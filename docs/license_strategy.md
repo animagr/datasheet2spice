@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # License Strategy
 
 The project core is Apache-2.0.

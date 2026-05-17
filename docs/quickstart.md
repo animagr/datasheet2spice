@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Quick Start
 
 ## Install From Source

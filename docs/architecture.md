@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Architecture
 
 `datasheet2spice` is split into small, replaceable layers.

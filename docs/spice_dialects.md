@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # SPICE Dialects
 
 `datasheet2spice` keeps one internal device project and exports simulator

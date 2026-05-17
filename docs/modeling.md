@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Modeling Notes
 
 ## VDMOS

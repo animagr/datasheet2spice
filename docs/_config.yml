@@ -1,0 +1,5 @@
+title: datasheet2spice
+description: Traceable datasheet-to-SPICE model generation for power MOSFETs and SiC MOSFETs.
+theme: jekyll-theme-minimal
+markdown: kramdown
+

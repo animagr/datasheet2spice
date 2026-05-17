@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Device Schema
 
 The project file is JSON.
