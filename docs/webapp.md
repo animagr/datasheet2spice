@@ -21,7 +21,8 @@ http://127.0.0.1:8765
 
 1. Upload a PDF datasheet.
 2. Review the extracted fields, confidence scores, warnings, source snippets,
-   recognized table candidates, and auto-digitized curve data.
+   rendered datasheet screenshots, recognized table candidates, and
+   auto-digitized curve data.
 3. Correct common parameters in the review form, or edit the project JSON
    directly for deeper changes.
 4. Run parameter fitting and model quality evaluation.
@@ -51,10 +52,12 @@ digitized curve for serious transient fitting.
 ## Added Analysis Tools
 
 - Table recognition groups PDF words into table candidates and shows the
-  highest-scoring rows in the review pane.
+  highest-scoring rows in the review pane, with side-by-side PDF image crops.
 - Curve digitization detects vector `Ciss/Coss/Crss` log-log plots when the PDF
-  preserves curves as vector paths. For raster-only plots, use CSV import until
-  the image digitizer is added.
+  preserves curves as vector paths.
+- Raster plot digitization renders a calibrated PDF plot crop and traces a
+  single scanned curve with axis/grid suppression, coverage metrics, and a
+  reviewable point list. See [Raster Plot Digitization](raster_digitization.md).
 - Parameter fitting computes VDMOS starter parameters and ABM recommendations
   such as `KID`, `CGD_SCALE`, and `CGS_SCALE`.
 - Model evaluation scores static coverage, dynamic coverage, capacitance

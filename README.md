@@ -41,9 +41,9 @@ python -m pip install -e .[pdf]
 datasheet2spice serve --host 127.0.0.1 --port 8765
 ```
 
-The workbench includes PDF table recognition, vector capacitance-curve
-digitization, parameter review forms, starter fit recommendations, and a model
-quality score.
+The workbench includes PDF table recognition, side-by-side screenshot evidence,
+vector capacitance-curve digitization, calibrated raster plot digitization,
+parameter review forms, starter fit recommendations, and a model quality score.
 
 Ten-minute path for a new device:
 
@@ -105,6 +105,7 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [Schema](docs/schema.md)
 - [Plugins](docs/plugins.md)
 - [Browser Workbench](docs/webapp.md)
+- [Raster Plot Digitization](docs/raster_digitization.md)
 - [Modeling Notes](docs/modeling.md)
 - [Limitations](docs/limitations.md)
 - [License Strategy](docs/license_strategy.md)

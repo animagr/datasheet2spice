@@ -16,6 +16,8 @@ This is engineering guidance, not legal advice.
 | Tool | Typical Use | License Note | Bundled? |
 |---|---|---|---|
 | PyMuPDF / MuPDF | PDF vector/text extraction plugin | AGPL-3.0 or commercial license from Artifex | No |
+| Pillow | Rendering and raster-image handling for local PDF evidence and scanned plots | HPND-style Pillow license | No |
+| NumPy | Pixel-array processing for scanned plot digitization | BSD-3-Clause | No |
 | WebPlotDigitizer | Manual plot digitization, CSV export | AGPL-3.0 frontend; cloud AI Assist is not open source | No |
 | StarryDigitizer | Browser-based graph digitization | Check upstream license before bundling | No |
 | PySpice | Python ngspice/Xyce interface | GPL-3.0 | No |
@@ -26,8 +28,8 @@ This is engineering guidance, not legal advice.
 
 ## Design Decision
 
-The core project does not import PyMuPDF, PySpice, spicelib, WebPlotDigitizer,
-or LTspice at import time. Integrations should either:
+The core project does not import PyMuPDF, Pillow, NumPy, PySpice, spicelib,
+WebPlotDigitizer, or LTspice at import time. Integrations should either:
 
 - call external executables through subprocess,
 - import optional packages only inside plugin functions,

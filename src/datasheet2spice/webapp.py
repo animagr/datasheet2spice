@@ -14,7 +14,10 @@ import zipfile
 from typing import Any
 
 from .evaluation import evaluate_project_model
+from .extractors.curve_digitizer import DEFAULT_VDS_POINTS
+from .extractors.pdf_evidence import render_pdf_evidence_images
 from .extractors.pdf_mosfet import extract_mosfet_project_from_pdf
+from .extractors.raster_digitizer import digitize_raster_curve_from_pdf
 from .fitting import fit_project_parameters
 from .plugins import load_plugins, registry
 from .report import render_report
@@ -48,6 +51,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         if self.path.startswith("/download/"):
             self._send_download(self.path)
             return
+        if self.path.startswith("/assets/"):
+            self._send_asset(self.path)
+            return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -59,6 +65,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/fit":
             self._handle_fit()
+            return
+        if self.path == "/api/raster-digitize":
+            self._handle_raster_digitize()
             return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
@@ -81,6 +90,14 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             project: DeviceProject = result["project"]
             project_path = session_dir / f"{project.model_name}.device.json"
             project.save(project_path)
+            evidence = render_pdf_evidence_images(
+                pdf_path,
+                session_dir / "assets",
+                f"/assets/{session}",
+                findings=result["findings"],
+                tables=result.get("tables", []),
+                curve_digitization=result.get("curve_digitization"),
+            )
             self._send_json(
                 {
                     "session": session,
@@ -91,6 +108,7 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
                     "warnings": result["warnings"],
                     "tables": result.get("tables", []),
                     "curve_digitization": result.get("curve_digitization"),
+                    "evidence": evidence,
                     "fit": fit_project_parameters(project)["fits"],
                     "evaluation": evaluate_project_model(project),
                 }
@@ -118,6 +136,30 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             project = DeviceProject(data=body["project"])
             fit = fit_project_parameters(project)
             self._send_json({"ok": True, "project": fit["project"], "fit": fit["fits"], "evaluation": evaluate_project_model(project)})
+        except KeyError as exc:
+            self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_raster_digitize(self) -> None:
+        try:
+            body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
+            session = _safe_session(str(body["session"]))
+            pdf_path = _session_pdf_path(self.workspace / session, body.get("filename"))
+            result = digitize_raster_curve_from_pdf(
+                pdf_path,
+                int(body["page"]),
+                [float(v) for v in body["plot_rect"]],
+                curve_name=str(body.get("curve_name") or "curve"),
+                x_range=_range_tuple(body.get("x_range"), (0.1, 1000.0)),
+                y_range=_range_tuple(body.get("y_range"), (1.0, 100000.0)),
+                x_values=[float(v) for v in body.get("x_values", DEFAULT_VDS_POINTS)],
+                x_log=bool(body.get("x_log", True)),
+                y_log=bool(body.get("y_log", True)),
+                threshold=int(body.get("threshold", 110)),
+                initial_y_fraction=_optional_float(body.get("initial_y_fraction")),
+            )
+            self._send_json({"ok": True, "digitization": result})
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -152,6 +194,23 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _send_asset(self, request_path: str) -> None:
+        match = re.fullmatch(r"/assets/([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]+)", request_path)
+        if not match:
+            self._send_json({"error": "invalid asset path"}, HTTPStatus.BAD_REQUEST)
+            return
+        path = self.workspace / match.group(1) / "assets" / match.group(2)
+        if not path.exists() or not path.is_file():
+            self._send_json({"error": "asset not found"}, HTTPStatus.NOT_FOUND)
+            return
+        payload = path.read_bytes()
+        content_type = "image/png" if path.suffix.lower() == ".png" else "application/octet-stream"
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
@@ -239,6 +298,31 @@ def _safe_filename(value: str) -> str:
     return cleaned if cleaned.lower().endswith(".pdf") else f"{cleaned}.pdf"
 
 
+def _session_pdf_path(session_dir: Path, filename: Any = None) -> Path:
+    if filename:
+        candidate = session_dir / _safe_filename(str(filename))
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    pdfs = sorted(session_dir.glob("*.pdf"))
+    if not pdfs:
+        raise FileNotFoundError("no uploaded PDF found for this session")
+    return pdfs[0]
+
+
+def _range_tuple(value: Any, default: tuple[float, float]) -> tuple[float, float]:
+    if value is None:
+        return default
+    if not isinstance(value, list | tuple) or len(value) != 2:
+        raise ValueError("axis range must be a two-value array")
+    return (float(value[0]), float(value[1]))
+
+
+def _optional_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    return float(value)
+
+
 INDEX_HTML = r"""<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -267,8 +351,8 @@ INDEX_HTML = r"""<!doctype html>
     }
     h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
     main {
-      display: grid; grid-template-columns: 340px minmax(360px, 1fr) 420px;
-      gap: 16px; padding: 16px; max-width: 1500px; margin: 0 auto;
+      display: grid; grid-template-columns: 320px minmax(620px, 1.35fr) minmax(380px, .9fr);
+      gap: 16px; padding: 16px; max-width: 1720px; margin: 0 auto;
     }
     section {
       background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
@@ -313,7 +397,30 @@ INDEX_HTML = r"""<!doctype html>
     .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .review-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
-    @media (max-width: 1180px) { main { grid-template-columns: 1fr; } textarea { min-height: 300px; } }
+    .review-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+    .evidence-panel {
+      border-left: 1px solid var(--line); padding-left: 12px; min-width: 0;
+      max-height: calc(100vh - 138px); overflow: auto;
+    }
+    .panel-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .evidence-stack { display: grid; gap: 10px; }
+    .evidence-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
+    .evidence-card img {
+      width: 100%; max-height: 260px; object-fit: contain; display: block;
+      border: 1px solid var(--line); border-radius: 6px; background: #fff;
+    }
+    .evidence-meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 7px 0; font-size: 12px; }
+    .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .tool-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
+    .raster-result { max-height: 180px; overflow: auto; font-size: 12px; }
+    @media (max-width: 1280px) {
+      main { grid-template-columns: 1fr; }
+      textarea { min-height: 300px; }
+    }
+    @media (max-width: 900px) {
+      .review-layout { grid-template-columns: 1fr; }
+      .evidence-panel { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; max-height: none; }
+    }
   </style>
 </head>
 <body>
@@ -336,24 +443,49 @@ INDEX_HTML = r"""<!doctype html>
     </section>
 
     <section>
-      <h2>提取结果</h2>
-      <div class="body stack">
-        <table>
-          <thead><tr><th>字段</th><th>值</th><th>置信度</th><th>来源片段</th></tr></thead>
-          <tbody id="findings"></tbody>
-        </table>
-        <div>
-          <h3>参数校对</h3>
-          <div id="reviewFields" class="review-grid"></div>
-          <button class="secondary" id="applyReviewBtn" disabled>应用校对值到 JSON</button>
-        </div>
-        <div>
-          <h3>自动数字化曲线</h3>
-          <div id="curveBox" class="compact"></div>
-        </div>
-        <div>
-          <h3>识别到的表格</h3>
-          <div id="tablesBox" class="compact"></div>
+      <h2>提取结果与截图证据</h2>
+      <div class="body">
+        <div class="review-layout">
+          <div class="stack">
+            <table>
+              <thead><tr><th>字段</th><th>值</th><th>置信度</th><th>来源片段</th></tr></thead>
+              <tbody id="findings"></tbody>
+            </table>
+            <div>
+              <h3>参数校对</h3>
+              <div id="reviewFields" class="review-grid"></div>
+              <button class="secondary" id="applyReviewBtn" disabled>应用校对值到 JSON</button>
+            </div>
+            <div>
+              <h3>自动数字化曲线</h3>
+              <div id="curveBox" class="compact"></div>
+            </div>
+            <div>
+              <h3>识别到的表格</h3>
+              <div id="tablesBox" class="compact"></div>
+            </div>
+          </div>
+          <aside class="evidence-panel">
+            <div class="panel-title">datasheet 截图</div>
+            <div id="evidenceBox" class="evidence-stack"></div>
+            <div class="evidence-card" style="margin-top: 10px;">
+              <h3>扫描图数字化</h3>
+              <div class="tool-grid">
+                <label>页码<input id="rasterPage" value="1" /></label>
+                <label>曲线名<input id="rasterCurveName" value="coss_pf" /></label>
+                <label>图框 x0,y0,x1,y1<input id="rasterRect" placeholder="例如 120,180,420,360" /></label>
+                <label>阈值<input id="rasterThreshold" value="110" /></label>
+                <label>X范围<input id="rasterXRange" value="0.1,1000" /></label>
+                <label>Y范围<input id="rasterYRange" value="1,100000" /></label>
+                <label>起始Y比例<input id="rasterInitialY" placeholder="可空，0=顶端" /></label>
+              </div>
+              <div class="row" style="margin-top: 8px;">
+                <button class="secondary" id="rasterBtn" disabled>扫描图数字化</button>
+              </div>
+              <div id="rasterStatus" class="status">上传 PDF 后可用。</div>
+              <div id="rasterResult" class="raster-result"></div>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
@@ -391,6 +523,7 @@ INDEX_HTML = r"""<!doctype html>
   </main>
   <script>
     const session = crypto.randomUUID();
+    let lastExtractData = null;
     document.getElementById("sessionLabel").textContent = session;
     const setStatus = (id, text, kind = "") => {
       const el = document.getElementById(id);
@@ -407,10 +540,12 @@ INDEX_HTML = r"""<!doctype html>
       const res = await fetch("/api/extract", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok || data.error) { setStatus("extractStatus", data.error || "提取失败", "bad"); return; }
+      lastExtractData = data;
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
       document.getElementById("fitBtn").disabled = false;
       document.getElementById("applyReviewBtn").disabled = false;
+      document.getElementById("rasterBtn").disabled = false;
       setStatus("extractStatus", `已提取 ${data.project.device.part_number}，请检查右侧 JSON。`);
       document.getElementById("warnings").innerHTML = (data.warnings || []).map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
       document.getElementById("findings").innerHTML = (data.findings || []).map(f => `
@@ -423,6 +558,7 @@ INDEX_HTML = r"""<!doctype html>
       renderReviewFields(data.project);
       renderCurve(data.curve_digitization);
       renderTables(data.tables || []);
+      renderEvidence(data.evidence || []);
       renderEvaluation(data.evaluation, data.fit || []);
     });
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
@@ -452,6 +588,38 @@ INDEX_HTML = r"""<!doctype html>
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       renderEvaluation(data.evaluation, data.fit || []);
       setStatus("generateStatus", "拟合和评估已更新。");
+    });
+    document.getElementById("rasterBtn").addEventListener("click", async () => {
+      if (!lastExtractData) { setStatus("rasterStatus", "请先上传 PDF。", "warn"); return; }
+      const rect = parseNumberList(document.getElementById("rasterRect").value, 4);
+      const xRange = parseNumberList(document.getElementById("rasterXRange").value, 2);
+      const yRange = parseNumberList(document.getElementById("rasterYRange").value, 2);
+      if (!rect || !xRange || !yRange) {
+        setStatus("rasterStatus", "请检查图框和坐标范围。", "bad");
+        return;
+      }
+      const initialYRaw = document.getElementById("rasterInitialY").value.trim();
+      const body = {
+        session,
+        filename: lastExtractData.filename,
+        page: Number(document.getElementById("rasterPage").value || 1),
+        plot_rect: rect,
+        curve_name: document.getElementById("rasterCurveName").value.trim() || "curve",
+        threshold: Number(document.getElementById("rasterThreshold").value || 110),
+        x_range: xRange,
+        y_range: yRange,
+        initial_y_fraction: initialYRaw === "" ? null : Number(initialYRaw)
+      };
+      setStatus("rasterStatus", "正在数字化扫描图...");
+      const res = await fetch("/api/raster-digitize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setStatus("rasterStatus", data.error || "数字化失败", "bad"); return; }
+      renderRasterResult(data.digitization);
+      setStatus("rasterStatus", `已提取 ${data.digitization.metrics.extracted_points}/${data.digitization.metrics.requested_points} 个点，置信度 ${Math.round(data.digitization.confidence * 100)}%。`);
     });
     document.getElementById("generateBtn").addEventListener("click", async () => {
       const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
@@ -514,6 +682,44 @@ INDEX_HTML = r"""<!doctype html>
         <table><tbody>${table.rows.slice(0, 6).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>
       `).join("");
     }
+    function renderEvidence(evidence) {
+      const box = document.getElementById("evidenceBox");
+      if (!evidence.length) {
+        box.innerHTML = `<div class="status warn">未生成截图证据。扫描版 PDF 可先在数字化工具中手动输入页码和图框。</div>`;
+        return;
+      }
+      box.innerHTML = evidence.map((item, idx) => `
+        <div class="evidence-card">
+          <img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.label || "datasheet evidence")}" />
+          <div class="evidence-meta">
+            <span class="pill">${escapeHtml(item.kind)}</span>
+            <span class="pill">page ${escapeHtml(item.page)}</span>
+            ${item.confidence ? `<span class="pill">${Math.round(item.confidence * 100)}%</span>` : ""}
+            ${item.score ? `<span class="pill">score ${Math.round(item.score * 100)}%</span>` : ""}
+          </div>
+          <div class="mono">${escapeHtml((item.bbox || []).join(", "))}</div>
+          ${item.bbox ? `<button class="secondary" data-evidence-idx="${idx}">填入图框</button>` : ""}
+        </div>
+      `).join("");
+      box.querySelectorAll("[data-evidence-idx]").forEach(btn => {
+        btn.addEventListener("click", () => fillRasterFromEvidence(evidence[Number(btn.dataset.evidenceIdx)]));
+      });
+      const curveEvidence = evidence.find(item => item.kind === "curve_plot" && item.bbox);
+      if (curveEvidence) fillRasterFromEvidence(curveEvidence);
+    }
+    function fillRasterFromEvidence(item) {
+      document.getElementById("rasterPage").value = item.page || 1;
+      document.getElementById("rasterRect").value = (item.bbox || []).join(",");
+    }
+    function renderRasterResult(result) {
+      const rows = (result.points || []).map(point => `
+        <tr><td>${point.x}</td><td>${point.y}</td><td>${Math.round(point.x_px)}, ${Math.round(point.y_px)}</td></tr>
+      `).join("");
+      document.getElementById("rasterResult").innerHTML = `
+        <div>${(result.notes || []).map(note => `<div class="status warn">${escapeHtml(note)}</div>`).join("")}</div>
+        <table><thead><tr><th>X</th><th>${escapeHtml(result.curve_name)}</th><th>像素</th></tr></thead><tbody>${rows}</tbody></table>
+      `;
+    }
     function renderEvaluation(evaluation, fits) {
       if (!evaluation) { document.getElementById("evaluation").textContent = ""; return; }
       const fitRows = (fits || []).map(f => `<tr><td>${escapeHtml(f.model)}</td><td class="mono">${escapeHtml(JSON.stringify(f.parameters))}</td></tr>`).join("");
@@ -535,6 +741,10 @@ INDEX_HTML = r"""<!doctype html>
         cur = cur[key];
       }
       cur[parts[parts.length - 1]] = value;
+    }
+    function parseNumberList(text, expectedLength) {
+      const values = text.split(",").map(v => Number(v.trim())).filter(v => Number.isFinite(v));
+      return values.length === expectedLength ? values : null;
     }
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

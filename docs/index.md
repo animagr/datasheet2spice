@@ -5,6 +5,7 @@
 - [Device Schema](schema.md)
 - [Plugin Interfaces](plugins.md)
 - [Browser Workbench](webapp.md)
+- [Raster Plot Digitization](raster_digitization.md)
 - [Modeling Notes](modeling.md)
 - [Limitations](limitations.md)
 - [License Strategy](license_strategy.md)

@@ -27,7 +27,7 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-pdf = ["pymupdf>=1.24"]
+pdf = ["pymupdf>=1.24", "pillow>=10", "numpy>=1.26"]
 dev = ["build>=1.2", "hatchling>=1.25"]
 
 [project.urls]
