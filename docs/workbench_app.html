@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>datasheet2spice Web Workbench</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --line: #d7dee8;
+      --ink: #17202a;
+      --muted: #5f6b7a;
+      --accent: #146fcb;
+      --accent-2: #0a8f68;
+      --warn: #a86200;
+      --bad: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+    header {
+      display: flex; justify-content: space-between; gap: 16px; align-items: center;
+      padding: 16px 24px; border-bottom: 1px solid var(--line); background: #fff;
+    }
+    h1 { font-size: 20px; margin: 0; letter-spacing: 0; }
+    h2 { margin: 0; padding: 12px 14px; font-size: 15px; border-bottom: 1px solid var(--line); background: #fbfcfd; }
+    h3 { font-size: 13px; margin: 8px 0; }
+    main {
+      display: grid; grid-template-columns: 300px minmax(680px, 1.5fr) minmax(380px, .8fr);
+      gap: 16px; padding: 16px; max-width: 1880px; margin: 0 auto;
+    }
+    section {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      min-width: 0; overflow: hidden;
+    }
+    .body { padding: 14px; }
+    .stack { display: grid; gap: 12px; }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    input[type="file"], select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 9px;
+      background: #fff; color: var(--ink);
+    }
+    textarea { min-height: 380px; resize: vertical; font-family: Consolas, monospace; font-size: 12px; }
+    button, .button-link {
+      border: 1px solid #095fb2; background: var(--accent); color: #fff; border-radius: 6px;
+      padding: 9px 12px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;
+    }
+    button.secondary, .button-link.secondary { background: #fff; color: var(--accent); }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .status {
+      border-left: 4px solid var(--accent-2); background: #f0fbf7; padding: 10px; border-radius: 4px;
+      font-size: 13px; color: #174c3d;
+    }
+    .status.warn { border-left-color: var(--warn); background: #fff8ec; color: #5d3a00; }
+    .status.bad { border-left-color: var(--bad); background: #fff1f0; color: #6b1d16; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; background: #fbfcfd; }
+    .mono { font-family: Consolas, monospace; }
+    .compact { max-height: 280px; overflow: auto; font-size: 12px; }
+    .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
+    .checks label { display: flex; align-items: center; gap: 8px; color: var(--ink); margin: 8px 0; }
+    .preview { white-space: pre-wrap; font-family: Consolas, monospace; font-size: 12px; max-height: 260px; overflow: auto; }
+    .files a { color: var(--accent); text-decoration: none; display: block; margin: 3px 0; }
+    .files span { display: block; margin: 2px 0; }
+    @media (max-width: 1280px) {
+      main { grid-template-columns: 1fr; }
+      textarea { min-height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>datasheet2spice Web Workbench</h1>
+    <a class="button-link secondary" href="./">Documentation</a>
+  </header>
+  <main>
+    <section>
+      <h2>Input</h2>
+      <div class="body stack">
+        <div class="status warn">
+          This hosted version runs fully in the browser. It can extract text from many PDF datasheets,
+          but screenshot evidence and calibrated raster digitization still require the local Python workbench.
+        </div>
+        <div>
+          <label for="pdfFile">MOSFET datasheet PDF</label>
+          <input id="pdfFile" type="file" accept="application/pdf,.pdf">
+        </div>
+        <button id="extractPdfBtn">Extract Starter Project from PDF</button>
+        <div>
+          <label for="jsonFile">Or load a DeviceProject JSON</label>
+          <input id="jsonFile" type="file" accept="application/json,.json">
+        </div>
+        <button class="secondary" id="loadDemoBtn">Load Demo Project</button>
+        <div id="inputStatus" class="status">Load a PDF or JSON project to begin.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Project Review</h2>
+      <div class="body stack">
+        <textarea id="projectJson" spellcheck="false"></textarea>
+        <div>
+          <h3>Extracted Fields</h3>
+          <div id="findings" class="compact"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Generate Models</h2>
+      <div class="body stack">
+        <div class="checks">
+          <label><input type="checkbox" name="model" value="abm-basic" checked> ABM Behavioral Model</label>
+          <label><input type="checkbox" name="model" value="vdmos-static-fast" checked> VDMOS Compact Model</label>
+        </div>
+        <div>
+          <label for="dialect">SPICE Dialect</label>
+          <select id="dialect">
+            <option value="ltspice">LTspice</option>
+            <option value="ngspice">ngspice</option>
+            <option value="common">portable common SPICE</option>
+            <option value="pspice">PSpice</option>
+            <option value="hspice">HSPICE</option>
+            <option value="xyce">Xyce</option>
+            <option value="qspice">QSPICE experimental</option>
+            <option value="all">All Major Dialects</option>
+          </select>
+        </div>
+        <button id="generateBtn" disabled>Generate ZIP Bundle</button>
+        <div id="generateStatus" class="status">Generation is available after a project is loaded.</div>
+        <div id="files" class="files"></div>
+        <div id="report" class="preview"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script type="module">
+    import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
+
+    const DIALECTS = ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"];
+    const DEMO_PROJECT = {
+      schema_version: "1.0",
+      device: {
+        part_number: "DEMO_SIC_1200",
+        vendor: "Demo",
+        type: "SiC MOSFET",
+        package: "TO-247",
+        datasheet: "browser-demo"
+      },
+      ratings: { vdss_v: 1200, id_cont_a: 130, vgs_on_v: 18, vgs_off_v: -2 },
+      static: {
+        vgs_th_v: { "25": 3.8, "175": 3.0 },
+        rds_on_mohm: { "25": 11, "175": 25.9 },
+        gfs_s: 47,
+        rg_int_ohm: 1
+      },
+      dynamic: {
+        capacitance: {
+          vds_v: [0.1, 1, 10, 100, 800, 1000],
+          ciss_pf: [9240, 9036, 7917, 7901, 7870, 7865],
+          coss_pf: [21113, 790, 2155, 539, 209, 209],
+          crss_pf: [2201, 1899, 219, 29, 9.5, 9.5]
+        },
+        gate_charge: { qg_nc: 307, qgs_nc: 101, qgd_nc: 45 },
+        channel_fit: { idsat_reference_a: 130, vgs_reference_v: 18 },
+        body_diode: { vsd_25c_typ_v: 3.8, trr_ns: 19, qrr_nc: 876, irrm_a: 74 }
+      },
+      parasitics: { ld_nh: 2, ls_nh: 1, lg_nh: 0.2, rg_ext_ohm: 4.7 },
+      models: {},
+      provenance: []
+    };
+
+    let currentProject = null;
+    let currentFindings = [];
+
+    const $ = (id) => document.getElementById(id);
+    function setStatus(id, text, kind = "") {
+      const el = $(id);
+      el.className = "status" + (kind ? " " + kind : "");
+      el.textContent = text;
+    }
+    function cleanName(text) {
+      return String(text || "DEVICE").toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "") || "DEVICE";
+    }
+    function num(value, fallback) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    function getPath(obj, path, fallback = undefined) {
+      return path.split(".").reduce((cur, key) => cur && cur[key] !== undefined ? cur[key] : undefined, obj) ?? fallback;
+    }
+    function saveProject(project, findings = []) {
+      currentProject = project;
+      currentFindings = findings;
+      $("projectJson").value = JSON.stringify(project, null, 2);
+      $("generateBtn").disabled = false;
+      renderFindings(findings);
+    }
+    function renderFindings(findings) {
+      if (!findings.length) {
+        $("findings").innerHTML = '<div class="status warn">No extracted fields to show.</div>';
+        return;
+      }
+      $("findings").innerHTML = `
+        <table><thead><tr><th>Field</th><th>Value</th><th>Confidence</th></tr></thead><tbody>
+        ${findings.map(f => `<tr><td class="mono">${escapeHtml(f.field)}</td><td class="mono">${escapeHtml(f.value)}</td><td>${Math.round(f.confidence * 100)}%</td></tr>`).join("")}
+        </tbody></table>`;
+    }
+    async function extractPdf(file) {
+      setStatus("inputStatus", "Reading PDF in the browser...");
+      const data = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data }).promise;
+      const chunks = [];
+      const maxPages = Math.min(pdf.numPages, 16);
+      for (let i = 1; i <= maxPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        chunks.push(textContent.items.map(item => item.str || "").join(" "));
+      }
+      return chunks.join("\n");
+    }
+    function extractProjectFromText(text, filename) {
+      const normalized = text.replace(/\s+/g, " ");
+      const findings = [];
+      const find = (field, patterns, unit = "", confidence = 0.65) => {
+        for (const pattern of patterns) {
+          const match = normalized.match(pattern);
+          if (match) {
+            const value = Number(String(match[1]).replace(",", ""));
+            if (Number.isFinite(value)) {
+              findings.push({ field, value: `${value}${unit ? " " + unit : ""}`, confidence });
+              return value;
+            }
+          }
+        }
+        return undefined;
+      };
+      const partMatch = normalized.match(/\b([A-Z]{1,6}[-_ ]?[A-Z0-9]{3,}[-_.A-Z0-9]*)\b/);
+      const part = cleanName(partMatch?.[1] || filename.replace(/\.[^.]+$/, ""));
+      const vdss = find("ratings.vdss_v", [/VDSS[^0-9]{0,40}([0-9]{3,4})\s*V/i, /Drain\s*[- ]\s*source voltage[^0-9]{0,80}([0-9]{3,4})\s*V/i], "V", 0.72) ?? 1200;
+      const id = find("ratings.id_cont_a", [/\bID\b[^0-9]{0,80}([0-9]{2,4})\s*A/i, /continuous drain[^0-9]{0,80}([0-9]{2,4})\s*A/i], "A", 0.6) ?? 50;
+      const vgsOn = find("ratings.vgs_on_v", [/VGS[_ -]?on[^+\-0-9]{0,30}\+?([0-9]{1,2})\s*V/i, /turn[- ]on gate[^+\-0-9]{0,80}\+?([0-9]{1,2})\s*V/i], "V", 0.62) ?? 10;
+      const vgsOffRaw = normalized.match(/VGS[_ -]?off[^+\-0-9]{0,30}(-[0-9]{1,2})\s*V/i) || normalized.match(/turn[- ]off gate[^+\-0-9]{0,80}(-[0-9]{1,2})\s*V/i);
+      const vgsOff = vgsOffRaw ? Number(vgsOffRaw[1]) : 0;
+      if (vgsOffRaw) findings.push({ field: "ratings.vgs_off_v", value: `${vgsOff} V`, confidence: 0.62 });
+      const rds = find("static.rds_on_mohm.25", [/RDS\(on\)[^0-9]{0,100}([0-9.]{1,5})\s*m/i, /on[- ]resistance[^0-9]{0,100}([0-9.]{1,5})\s*m/i], "mOhm", 0.58) ?? 20;
+      const vth = find("static.vgs_th_v.25", [/VGS\(th\)[^0-9]{0,100}([0-9.]{1,4})\s*V/i, /threshold voltage[^0-9]{0,100}([0-9.]{1,4})\s*V/i], "V", 0.58) ?? 4;
+      const gfs = find("static.gfs_s", [/\bgfs\b[^0-9]{0,80}([0-9.]{1,4})\s*S/i, /transconductance[^0-9]{0,80}([0-9.]{1,4})\s*S/i], "S", 0.58) ?? 20;
+      const rg = find("static.rg_int_ohm", [/\bRG\b[^0-9]{0,80}([0-9.]{1,4})\s*(?:ohm|Ohm|Ω)/i, /gate input resistance[^0-9]{0,80}([0-9.]{1,4})/i], "Ohm", 0.52) ?? 1;
+      const ciss = find("dynamic.capacitance.ciss_pf", [/\bCiss\b[^0-9]{0,80}([0-9.]{2,8})\s*pF/i, /input capacitance[^0-9]{0,80}([0-9.]{2,8})\s*pF/i], "pF", 0.6) ?? 2000;
+      const coss = find("dynamic.capacitance.coss_pf", [/\bCoss\b[^0-9]{0,80}([0-9.]{2,8})\s*pF/i, /output capacitance[^0-9]{0,80}([0-9.]{2,8})\s*pF/i], "pF", 0.6) ?? 300;
+      const crss = find("dynamic.capacitance.crss_pf", [/\bCrss\b[^0-9]{0,80}([0-9.]{1,8})\s*pF/i, /reverse transfer capacitance[^0-9]{0,80}([0-9.]{1,8})\s*pF/i], "pF", 0.6) ?? 30;
+      const qg = find("dynamic.gate_charge.qg_nc", [/\bQg\b[^0-9]{0,80}([0-9.]{1,6})\s*nC/i, /total gate charge[^0-9]{0,80}([0-9.]{1,6})\s*nC/i], "nC", 0.55) ?? 100;
+      const qgs = find("dynamic.gate_charge.qgs_nc", [/\bQgs\b[^0-9]{0,80}([0-9.]{1,6})\s*nC/i], "nC", 0.5) ?? Math.round(qg * 0.3);
+      const qgd = find("dynamic.gate_charge.qgd_nc", [/\bQgd\b[^0-9]{0,80}([0-9.]{1,6})\s*nC/i], "nC", 0.5) ?? Math.round(qg * 0.2);
+      const trr = find("dynamic.body_diode.trr_ns", [/\btrr\b[^0-9]{0,80}([0-9.]{1,6})\s*ns/i, /reverse recovery time[^0-9]{0,80}([0-9.]{1,6})\s*ns/i], "ns", 0.5) ?? 30;
+      const qrr = find("dynamic.body_diode.qrr_nc", [/\bQrr\b[^0-9]{0,80}([0-9.]{1,8})\s*nC/i, /reverse recovery charge[^0-9]{0,80}([0-9.]{1,8})\s*nC/i], "nC", 0.5) ?? 0;
+      const irrm = find("dynamic.body_diode.irrm_a", [/\bIrrm\b[^0-9]{0,80}([0-9.]{1,6})\s*A/i, /peak reverse recovery current[^0-9]{0,80}([0-9.]{1,6})\s*A/i], "A", 0.5) ?? 0;
+      const cHi = Math.max(ciss, coss, crss);
+      const project = structuredClone(DEMO_PROJECT);
+      project.device.part_number = part;
+      project.device.datasheet = filename;
+      project.ratings = { vdss_v: vdss, id_cont_a: id, vgs_on_v: vgsOn, vgs_off_v: vgsOff };
+      project.static = {
+        vgs_th_v: { "25": vth },
+        rds_on_mohm: { "25": rds },
+        gfs_s: gfs,
+        rg_int_ohm: rg
+      };
+      project.dynamic.capacitance = {
+        vds_v: [0.1, 1, 10, 100, Math.max(vdss * 0.67, 100)],
+        ciss_pf: [cHi * 1.2, cHi * 1.1, ciss, ciss * 0.98, ciss * 0.97].map(round3),
+        coss_pf: [Math.max(coss * 5, crss * 2), coss * 3, coss * 1.4, coss * 1.05, coss].map(round3),
+        crss_pf: [Math.max(crss * 8, 1), crss * 3, crss * 1.4, crss * 1.05, crss].map(round3)
+      };
+      project.dynamic.gate_charge = { qg_nc: qg, qgs_nc: qgs, qgd_nc: qgd };
+      project.dynamic.channel_fit = { idsat_reference_a: id, vgs_reference_v: vgsOn };
+      project.dynamic.body_diode = { trr_ns: trr, qrr_nc: qrr, irrm_a: irrm };
+      project.provenance = [{ source: filename, kind: "browser_pdf_text", note: "Extracted with browser-side PDF.js heuristics. Review all values before use." }];
+      return { project, findings };
+    }
+    function round3(x) {
+      return Math.round(Number(x) * 1000) / 1000;
+    }
+    function modelName(project) {
+      return cleanName(project.device?.part_number || "DEVICE");
+    }
+    function suffix(dialect) {
+      return dialect === "common" ? "" : `_${dialect}`;
+    }
+    function modelParams(project) {
+      const rds = num(getPath(project, "static.rds_on_mohm.25"), 20) * 1e-3;
+      const gfs = num(getPath(project, "static.gfs_s"), 20);
+      const caps = getPath(project, "dynamic.capacitance", {});
+      const ciss = (caps.ciss_pf || [2000]).map(Number);
+      const coss = (caps.coss_pf || [300]).map(Number);
+      const crss = (caps.crss_pf || [30]).map(Number);
+      const last = (arr, fallback) => arr.length ? num(arr[arr.length - 1], fallback) : fallback;
+      return {
+        vth: num(getPath(project, "static.vgs_th_v.25"), 4),
+        rds,
+        rd: Math.max(rds * 0.45, 1e-6),
+        rs: Math.max(rds * 0.45, 1e-6),
+        rg: num(getPath(project, "static.rg_int_ohm"), 1),
+        kp: Math.max(gfs * gfs * rds / 2, 0.1),
+        cgdmax: Math.max(...crss),
+        cgdmin: Math.min(...crss.slice(-3)),
+        cgd: Math.max(last(crss, 30), 1),
+        cgs: Math.max(last(ciss, 2000) - last(crss, 30), 1),
+        cjo: Math.max(last(coss, 300) - last(crss, 30), 1),
+        vdss: num(getPath(project, "ratings.vdss_v"), 1200),
+        tt: num(getPath(project, "dynamic.body_diode.trr_ns"), 30)
+      };
+    }
+    function generateBundle(project, models, dialects) {
+      const files = {};
+      for (const model of models) {
+        for (const dialect of dialects) {
+          if (model === "abm-basic") Object.assign(files, emitAbm(project, dialect));
+          if (model === "vdmos-static-fast") Object.assign(files, emitVdmos(project, dialect));
+        }
+      }
+      files[`${modelName(project)}_project.json`] = JSON.stringify(project, null, 2) + "\n";
+      files[`${modelName(project)}_README.txt`] = renderReport(project, models, dialects);
+      return files;
+    }
+    function emitAbm(project, dialect) {
+      const name = modelName(project);
+      const params = modelParams(project);
+      const file = `${name}_abm${suffix(dialect)}.lib`;
+      const deck = `${name}_double_pulse_abm${suffix(dialect)}.cir`;
+      const source = dialect === "pspice" || dialect === "common"
+        ? "Gch d_int s_int VALUE = {KID*max(V(g_int,s_int)-VTH,0)**2*tanh(V(d_int,s_int)/(RON*KID*max(V(g_int,s_int)-VTH,0)**2+1m))}"
+        : dialect === "hspice"
+          ? "Gch d_int s_int CUR='KID*max(V(g_int,s_int)-VTH,0)**2*tanh(V(d_int,s_int)/(RON*KID*max(V(g_int,s_int)-VTH,0)**2+1m))'"
+          : "Bch d_int s_int I = {KID*max(V(g_int,s_int)-VTH,0)**2*tanh(V(d_int,s_int)/(RON*KID*max(V(g_int,s_int)-VTH,0)**2+1m))}";
+      const cgsLine = dialect === "pspice" || dialect === "common"
+        ? `Ggs g_int s_int VALUE = {${params.cgs}p*DDT(V(g_int,s_int))}`
+        : dialect === "hspice"
+          ? `Ggs g_int s_int CUR='${params.cgs}p*DDT(V(g_int,s_int))'`
+          : `Bgs g_int s_int I = {${params.cgs}p*DDT(V(g_int,s_int))}`;
+      const cgdLine = dialect === "pspice" || dialect === "common"
+        ? `Ggd g_int d_int VALUE = {${params.cgd}p*DDT(V(g_int,d_int))}`
+        : dialect === "hspice"
+          ? `Ggd g_int d_int CUR='${params.cgd}p*DDT(V(g_int,d_int))'`
+          : `Bgd g_int d_int I = {${params.cgd}p*DDT(V(g_int,d_int))}`;
+      const lib = clean(`
+        * ${name} ABM starter generated by datasheet2spice Web Workbench
+        * Dialect: ${dialect}
+        * Review against datasheet and lab waveforms before design use.
+        .subckt ${name} D G S PARAMS: RON=${params.rds} VTH=${params.vth} KID=${Math.max(num(getPath(project, "ratings.id_cont_a"), 50) / Math.max((num(getPath(project, "ratings.vgs_on_v"), 10) - params.vth) ** 2, 1e-6), 0.001)} RGEXT=4.7
+        Ld D d_int 2n
+        Lg G g_pad 0.2n
+        Ls S s_int 1n
+        Rg g_pad g_int {RGEXT+${params.rg}}
+        ${source}
+        ${cgsLine}
+        ${cgdLine}
+        Cds d_int s_int ${params.cjo}p
+        Dbody s_int d_int DBODY
+        .model DBODY D(Is=1e-12 N=2 Rs=31m Cjo=${params.cjo}p Tt=${params.tt}n BV=${params.vdss} Ibv=30m)
+        Rgate_leak g_int s_int 1e12
+        .ends ${name}
+      `);
+      return { [file]: lib, [deck]: starterDeck(project, file, `XQ drain gate 0 ${name}`, "ABM") };
+    }
+    function emitVdmos(project, dialect) {
+      const name = modelName(project);
+      const params = modelParams(project);
+      const model = `${name}_VDMOS`;
+      const file = `${name}_vdmos${suffix(dialect)}.lib`;
+      const deck = `${name}_double_pulse_vdmos${suffix(dialect)}.cir`;
+      const native = dialect === "ltspice" || dialect === "ngspice";
+      const lib = native ? clean(`
+        * ${model} native VDMOS starter generated by datasheet2spice Web Workbench
+        .model ${model} VDMOS(Rd=${params.rd} Rs=${params.rs} Rg=${params.rg} Vto=${params.vth} Kp=${params.kp}
+        + Cgdmax=${params.cgdmax}p Cgdmin=${params.cgdmin}p Cgs=${params.cgs}p Cjo=${params.cjo}p
+        + Is=1e-12 N=2 Rb=1m Tt=${params.tt}n BV=${params.vdss} Ibv=30m)
+      `) : clean(`
+        * ${model} portable MOS fallback generated by datasheet2spice Web Workbench
+        * Dialect: ${dialect}. This is not a native VDMOS model.
+        .subckt ${model} D G S
+        Rd D d_mos ${params.rd}
+        Rs s_mos S ${params.rs}
+        Rg G g_int ${Math.max(params.rg, 1e-6)}
+        Mch d_mos g_int s_mos s_mos ${model}_NMOS L=1u W=1u
+        Cgs g_int S ${params.cgs}p
+        Cgd g_int D ${params.cgd}p
+        Cds D S ${params.cjo}p
+        Dbody S D ${model}_DBODY
+        .model ${model}_NMOS NMOS(Level=1 Vto=${params.vth} Kp=${params.kp} Lambda=0.002)
+        .model ${model}_DBODY D(Is=1e-12 N=2 Rs=31m Cjo=${params.cjo}p Tt=${params.tt}n BV=${params.vdss} Ibv=30m)
+        .ends ${model}
+      `);
+      const instance = native ? `M1 drain gate 0 ${model}` : `XQ drain gate 0 ${model}`;
+      return { [file]: lib, [deck]: starterDeck(project, file, instance, "VDMOS") };
+    }
+    function starterDeck(project, libFile, deviceLine, family) {
+      const name = modelName(project);
+      const vdss = num(getPath(project, "ratings.vdss_v"), 1200);
+      const vbus = Math.min(vdss * 2 / 3, 800);
+      const vOn = num(getPath(project, "ratings.vgs_on_v"), 10);
+      const vOff = num(getPath(project, "ratings.vgs_off_v"), 0);
+      return clean(`
+        * ${name} ${family} low-side inductive double-pulse starter deck
+        .include ${libFile}
+        Vbus bus 0 ${vbus}
+        Rload bus nload 20m
+        Lload nload drain 250u
+        Dfw drain bus DFAST
+        .model DFAST D(Is=1e-15 N=1.5 Rs=20m Cjo=80p Tt=20n BV=${vdss} Ibv=1m)
+        Vdrv gate_drv 0 PULSE(${vOff} ${vOn} 100n 5n 5n 21u 25u 2)
+        Rdrv gate_drv gate 4.7
+        ${deviceLine}
+        .tran 0 26.5u 0 1n
+        .save V(drain) V(gate) V(gate_drv) I(Lload) I(Vbus)
+        .options plotwinsize=0 reltol=0.003 abstol=1n vntol=1u
+        .end
+      `);
+    }
+    function renderReport(project, models, dialects) {
+      return [
+        `datasheet2spice Web Workbench report`,
+        `Part: ${modelName(project)}`,
+        `Models: ${models.join(", ")}`,
+        `Dialects: ${dialects.join(", ")}`,
+        ``,
+        `Generated models are starter netlists, not vendor-qualified models.`,
+        `Review all extracted values and validate against datasheet or lab waveforms before design use.`
+      ].join("\n") + "\n";
+    }
+    function clean(text) {
+      return text.split("\n").map(line => line.trim()).filter(Boolean).join("\n") + "\n";
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    $("extractPdfBtn").addEventListener("click", async () => {
+      const file = $("pdfFile").files[0];
+      if (!file) { setStatus("inputStatus", "Please choose a PDF first.", "warn"); return; }
+      try {
+        const text = await extractPdf(file);
+        const { project, findings } = extractProjectFromText(text, file.name);
+        saveProject(project, findings);
+        setStatus("inputStatus", `Extracted ${findings.length} starter fields from ${file.name}. Review the JSON before generation.`);
+      } catch (err) {
+        setStatus("inputStatus", `PDF extraction failed: ${err.message}`, "bad");
+      }
+    });
+    $("jsonFile").addEventListener("change", async () => {
+      const file = $("jsonFile").files[0];
+      if (!file) return;
+      try {
+        const project = JSON.parse(await file.text());
+        saveProject(project, []);
+        setStatus("inputStatus", `Loaded ${file.name}.`);
+      } catch (err) {
+        setStatus("inputStatus", `Could not load JSON: ${err.message}`, "bad");
+      }
+    });
+    $("loadDemoBtn").addEventListener("click", () => {
+      saveProject(structuredClone(DEMO_PROJECT), []);
+      setStatus("inputStatus", "Demo project loaded.");
+    });
+    $("generateBtn").addEventListener("click", async () => {
+      let project;
+      try {
+        project = JSON.parse($("projectJson").value);
+      } catch (err) {
+        setStatus("generateStatus", `Invalid JSON: ${err.message}`, "bad");
+        return;
+      }
+      const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
+      const dialectValue = $("dialect").value;
+      const dialects = dialectValue === "all" ? DIALECTS : [dialectValue];
+      if (!models.length) {
+        setStatus("generateStatus", "Select at least one model family.", "warn");
+        return;
+      }
+      const files = generateBundle(project, models, dialects);
+      const zip = new JSZip();
+      for (const [name, content] of Object.entries(files)) zip.file(name, content);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const zipName = `${modelName(project)}_models.zip`;
+      $("files").innerHTML = `<a href="${url}" download="${zipName}">Download ${zipName}</a>` +
+        Object.keys(files).sort().map(name => `<span class="mono">${escapeHtml(name)}</span>`).join("");
+      $("report").textContent = files[`${modelName(project)}_README.txt`];
+      setStatus("generateStatus", `Generated ${Object.keys(files).length} files.`);
+    });
+  </script>
+</body>
+</html>

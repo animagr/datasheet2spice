@@ -32,7 +32,7 @@ http://127.0.0.1:8765
 3. Correct common parameters in the review form, or edit the project JSON
    directly for deeper changes.
 4. Run parameter fitting and model quality evaluation.
-5. Select `ABM 行为模型`, `VDMOS 紧凑模型`, and the target SPICE dialect.
+5. Select `ABM Behavioral Model`, `VDMOS Compact Model`, and the target SPICE dialect.
    The workbench can emit common SPICE, LTspice, ngspice, PSpice, HSPICE,
    Xyce, and experimental QSPICE bundles. See [SPICE Dialects](spice_dialects.md).
 6. Generate and download the ZIP model bundle.

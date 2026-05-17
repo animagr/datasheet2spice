@@ -485,60 +485,60 @@ INDEX_HTML = r"""<!doctype html>
 </head>
 <body>
   <header>
-    <h1>datasheet2spice 本地工作台</h1>
+    <h1>datasheet2spice Local Workbench</h1>
     <div class="mono" id="sessionLabel"></div>
   </header>
   <main>
     <section>
-      <h2>PDF 上传</h2>
+      <h2>PDF Upload</h2>
       <div class="body stack">
         <div>
           <label for="pdf">MOSFET datasheet PDF</label>
           <input id="pdf" type="file" accept="application/pdf,.pdf" />
         </div>
-        <button id="extractBtn">上传并自动提取</button>
-        <div id="extractStatus" class="status">等待选择 PDF。</div>
+        <button id="extractBtn">Upload and Extract</button>
+        <div id="extractStatus" class="status">Waiting for a PDF.</div>
         <div id="warnings"></div>
       </div>
     </section>
 
     <section class="review-section">
-      <h2>提取结果与截图证据</h2>
+      <h2>Extraction Results and Evidence</h2>
       <div class="body">
         <div class="review-layout">
           <div class="stack">
             <table class="findings-table">
-              <thead><tr><th class="field-col">字段</th><th class="value-col">值</th><th class="confidence-col">置信度</th><th>来源片段</th></tr></thead>
+              <thead><tr><th class="field-col">Field</th><th class="value-col">Value</th><th class="confidence-col">Confidence</th><th>Source Snippet</th></tr></thead>
               <tbody id="findings"></tbody>
             </table>
             <div>
-              <h3>参数校对</h3>
+              <h3>Parameter Review</h3>
               <div id="reviewFields" class="review-grid"></div>
-              <button class="secondary" id="applyReviewBtn" disabled>应用校对值到 JSON</button>
+              <button class="secondary" id="applyReviewBtn" disabled>Apply Review Values to JSON</button>
             </div>
             <div>
-              <h3>自动数字化曲线</h3>
+              <h3>Auto-Digitized Curves</h3>
               <div id="curveBox" class="compact"></div>
             </div>
             <div>
-              <h3>识别到的表格</h3>
+              <h3>Detected Tables</h3>
               <div id="tablesBox" class="compact"></div>
             </div>
             <div class="evidence-card">
-              <h3>扫描图数字化</h3>
+              <h3>Raster Plot Digitization</h3>
               <div class="tool-grid">
-                <label>页码<input id="rasterPage" value="1" /></label>
-                <label>曲线名<input id="rasterCurveName" value="coss_pf" /></label>
-                <label>图框 x0,y0,x1,y1<input id="rasterRect" placeholder="例如 120,180,420,360" /></label>
-                <label>阈值<input id="rasterThreshold" value="110" /></label>
-                <label>X范围<input id="rasterXRange" value="0.1,1000" /></label>
-                <label>Y范围<input id="rasterYRange" value="1,100000" /></label>
-                <label>起始Y比例<input id="rasterInitialY" placeholder="可空，0=顶端" /></label>
+                <label>Page<input id="rasterPage" value="1" /></label>
+                <label>Curve Name<input id="rasterCurveName" value="coss_pf" /></label>
+                <label>Plot Box x0,y0,x1,y1<input id="rasterRect" placeholder="Example: 120,180,420,360" /></label>
+                <label>Threshold<input id="rasterThreshold" value="110" /></label>
+                <label>X Range<input id="rasterXRange" value="0.1,1000" /></label>
+                <label>Y Range<input id="rasterYRange" value="1,100000" /></label>
+                <label>Initial Y Fraction<input id="rasterInitialY" placeholder="Optional, 0 = top" /></label>
               </div>
               <div class="row" style="margin-top: 8px;">
-                <button class="secondary" id="rasterBtn" disabled>扫描图数字化</button>
+                <button class="secondary" id="rasterBtn" disabled>Digitize Raster Plot</button>
               </div>
-              <div id="rasterStatus" class="status">上传 PDF 后可用。</div>
+              <div id="rasterStatus" class="status">Available after PDF upload.</div>
               <div id="rasterResult" class="raster-result"></div>
             </div>
           </div>
@@ -547,18 +547,18 @@ INDEX_HTML = r"""<!doctype html>
     </section>
 
     <section>
-      <h2>模型生成</h2>
+      <h2>Model Generation</h2>
       <div class="body stack">
         <div>
-          <label for="projectJson">项目 JSON，可先人工修正再生成</label>
+          <label for="projectJson">Project JSON, editable before generation</label>
           <textarea id="projectJson" spellcheck="false"></textarea>
         </div>
         <div class="checks">
-          <label><input type="checkbox" name="model" value="abm-basic" checked /> ABM 行为模型</label>
-          <label><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS 紧凑模型</label>
+          <label><input type="checkbox" name="model" value="abm-basic" checked /> ABM Behavioral Model</label>
+          <label><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS Compact Model</label>
         </div>
         <div>
-          <label for="dialect">SPICE 方言</label>
+          <label for="dialect">SPICE Dialect</label>
           <select id="dialect">
             <option value="ltspice">LTspice</option>
             <option value="ngspice">ngspice</option>
@@ -567,14 +567,14 @@ INDEX_HTML = r"""<!doctype html>
             <option value="hspice">HSPICE</option>
             <option value="xyce">Xyce</option>
             <option value="qspice">QSPICE experimental</option>
-            <option value="all">全部主要方言</option>
+            <option value="all">All Major Dialects</option>
           </select>
         </div>
         <div class="row">
-          <button class="secondary" id="fitBtn" disabled>重新拟合并评估</button>
-          <button id="generateBtn" disabled>生成模型文件</button>
+          <button class="secondary" id="fitBtn" disabled>Refit and Evaluate</button>
+          <button id="generateBtn" disabled>Generate Model Files</button>
         </div>
-        <div id="generateStatus" class="status">提取成功后可生成。</div>
+        <div id="generateStatus" class="status">Generation is available after extraction.</div>
         <div id="evaluation" class="compact"></div>
         <div class="files" id="files"></div>
         <div class="preview" id="report"></div>
@@ -597,25 +597,25 @@ INDEX_HTML = r"""<!doctype html>
     };
     document.getElementById("extractBtn").addEventListener("click", async () => {
       const file = document.getElementById("pdf").files[0];
-      if (!file) { setStatus("extractStatus", "请先选择 PDF。", "warn"); return; }
+      if (!file) { setStatus("extractStatus", "Please choose a PDF first.", "warn"); return; }
       const form = new FormData();
       form.append("session", session);
       form.append("pdf", file);
-      setStatus("extractStatus", "正在上传和提取...");
+      setStatus("extractStatus", "Uploading and extracting...");
       const res = await fetch("/api/extract", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok || data.error) { setStatus("extractStatus", data.error || "提取失败", "bad"); return; }
-      applyExtractionData(data, `已提取 ${data.project.device.part_number}，请检查右侧 JSON。`);
+      if (!res.ok || data.error) { setStatus("extractStatus", data.error || "Extraction failed.", "bad"); return; }
+      applyExtractionData(data, `Extracted ${data.project.device.part_number}. Review the JSON on the right.`);
     });
     if (requestedSession) {
       loadStoredSession(requestedSession);
     }
     async function loadStoredSession(sessionId) {
-      setStatus("extractStatus", "正在载入已有提取结果...");
+      setStatus("extractStatus", "Loading stored extraction results...");
       const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
       const data = await res.json();
-      if (!res.ok || data.error) { setStatus("extractStatus", data.error || "未找到会话结果。", "warn"); return; }
-      applyExtractionData(data, `已载入 ${data.project.device.part_number} 的历史提取结果。`);
+      if (!res.ok || data.error) { setStatus("extractStatus", data.error || "Session result not found.", "warn"); return; }
+      applyExtractionData(data, `Loaded stored extraction results for ${data.project.device.part_number}.`);
     }
     function applyExtractionData(data, statusText) {
       lastExtractData = data;
@@ -634,7 +634,7 @@ INDEX_HTML = r"""<!doctype html>
           <td>${Math.round((f.confidence || 0) * 100)}%</td>
           <td class="source-cell">
             <div class="snippet-text">${escapeHtml(f.snippet || "")}</div>
-            <button type="button" class="evidence-float-btn" data-evidence-hover="1" data-evidence-field="${escapeHtml(f.field)}" title="悬停查看截图，点击放大">图</button>
+            <button type="button" class="evidence-float-btn" data-evidence-hover="1" data-evidence-field="${escapeHtml(f.field)}" title="Hover to preview evidence; click to zoom">EV</button>
           </td>
         </tr>`).join("");
       document.querySelectorAll("[data-finding-field]").forEach(row => {
@@ -651,38 +651,38 @@ INDEX_HTML = r"""<!doctype html>
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
       let project;
       try { project = JSON.parse(document.getElementById("projectJson").value); }
-      catch (err) { setStatus("extractStatus", "JSON 格式错误：" + err.message, "bad"); return; }
+      catch (err) { setStatus("extractStatus", "Invalid JSON: " + err.message, "bad"); return; }
       for (const input of document.querySelectorAll("[data-path]")) {
         const raw = input.value.trim();
         if (raw === "") continue;
         setPath(project, input.dataset.path, Number.isFinite(Number(raw)) ? Number(raw) : raw);
       }
       document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
-      setStatus("extractStatus", "校对值已写入 JSON。");
+      setStatus("extractStatus", "Review values have been written to JSON.");
     });
     document.getElementById("fitBtn").addEventListener("click", async () => {
       let project;
       try { project = JSON.parse(document.getElementById("projectJson").value); }
-      catch (err) { setStatus("generateStatus", "JSON 格式错误：" + err.message, "bad"); return; }
-      setStatus("generateStatus", "正在拟合并评估...");
+      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      setStatus("generateStatus", "Fitting and evaluating...");
       const res = await fetch("/api/fit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session, project })
       });
       const data = await res.json();
-      if (!res.ok || data.error) { setStatus("generateStatus", data.error || "拟合失败", "bad"); return; }
+      if (!res.ok || data.error) { setStatus("generateStatus", data.error || "Fitting failed.", "bad"); return; }
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       renderEvaluation(data.evaluation, data.fit || []);
-      setStatus("generateStatus", "拟合和评估已更新。");
+      setStatus("generateStatus", "Fit and evaluation updated.");
     });
     document.getElementById("rasterBtn").addEventListener("click", async () => {
-      if (!lastExtractData) { setStatus("rasterStatus", "请先上传 PDF。", "warn"); return; }
+      if (!lastExtractData) { setStatus("rasterStatus", "Please upload a PDF first.", "warn"); return; }
       const rect = parseNumberList(document.getElementById("rasterRect").value, 4);
       const xRange = parseNumberList(document.getElementById("rasterXRange").value, 2);
       const yRange = parseNumberList(document.getElementById("rasterYRange").value, 2);
       if (!rect || !xRange || !yRange) {
-        setStatus("rasterStatus", "请检查图框和坐标范围。", "bad");
+        setStatus("rasterStatus", "Check the plot box and coordinate ranges.", "bad");
         return;
       }
       const initialYRaw = document.getElementById("rasterInitialY").value.trim();
@@ -697,26 +697,26 @@ INDEX_HTML = r"""<!doctype html>
         y_range: yRange,
         initial_y_fraction: initialYRaw === "" ? null : Number(initialYRaw)
       };
-      setStatus("rasterStatus", "正在数字化扫描图...");
+      setStatus("rasterStatus", "Digitizing raster plot...");
       const res = await fetch("/api/raster-digitize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
       const data = await res.json();
-      if (!res.ok || data.error) { setStatus("rasterStatus", data.error || "数字化失败", "bad"); return; }
+      if (!res.ok || data.error) { setStatus("rasterStatus", data.error || "Digitization failed.", "bad"); return; }
       renderRasterResult(data.digitization);
-      setStatus("rasterStatus", `已提取 ${data.digitization.metrics.extracted_points}/${data.digitization.metrics.requested_points} 个点，置信度 ${Math.round(data.digitization.confidence * 100)}%。`);
+      setStatus("rasterStatus", `Extracted ${data.digitization.metrics.extracted_points}/${data.digitization.metrics.requested_points} points with ${Math.round(data.digitization.confidence * 100)}% confidence.`);
     });
     document.getElementById("generateBtn").addEventListener("click", async () => {
       const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
       const dialect = document.getElementById("dialect").value;
       const dialects = dialect === "all" ? ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"] : [dialect];
-      if (!models.length) { setStatus("generateStatus", "至少选择一种模型。", "warn"); return; }
+      if (!models.length) { setStatus("generateStatus", "Select at least one model family.", "warn"); return; }
       let project;
       try { project = JSON.parse(document.getElementById("projectJson").value); }
-      catch (err) { setStatus("generateStatus", "JSON 格式错误：" + err.message, "bad"); return; }
-      setStatus("generateStatus", "正在生成模型...");
+      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      setStatus("generateStatus", "Generating models...");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -724,9 +724,9 @@ INDEX_HTML = r"""<!doctype html>
       });
       const data = await res.json();
       if (!res.ok || !data.ok) { setStatus("generateStatus", (data.errors || [data.error]).join("; "), "bad"); return; }
-      setStatus("generateStatus", `已生成 ${data.files.length} 个文件。`);
+      setStatus("generateStatus", `Generated ${data.files.length} files.`);
       renderEvaluation(data.evaluation, data.fit || []);
-      document.getElementById("files").innerHTML = `<a href="${data.download_url}">下载 ZIP 模型包</a><br>` +
+      document.getElementById("files").innerHTML = `<a href="${data.download_url}">Download ZIP model bundle</a><br>` +
         data.files.map(f => `<span class="mono">${escapeHtml(f.name)}</span>`).join("<br>");
       document.getElementById("report").textContent = data.report || "";
     });
@@ -753,7 +753,7 @@ INDEX_HTML = r"""<!doctype html>
     }
     function renderCurve(curve) {
       currentCurve = curve;
-      if (!curve) { document.getElementById("curveBox").innerHTML = `<div class="status warn">未识别到可自动数字化的 Ciss/Coss/Crss 矢量曲线。</div>`; return; }
+      if (!curve) { document.getElementById("curveBox").innerHTML = `<div class="status warn">No auto-digitized Ciss/Coss/Crss vector curve was found.</div>`; return; }
       const data = curve.data || {};
       const rows = (data.vds_v || []).map((v, i) => `
         <tr class="curve-row"><td>${v}</td><td>${data.ciss_pf[i]}</td><td>${data.coss_pf[i]}</td><td>${data.crss_pf[i]}</td></tr>
@@ -762,14 +762,14 @@ INDEX_HTML = r"""<!doctype html>
         <div class="row">
           <span class="pill">page ${curve.page}</span>
           <span class="pill">confidence ${Math.round(curve.confidence * 100)}%</span>
-          <button class="secondary" id="curveEvidenceBtn" data-evidence-hover="1" data-evidence-kind="curve">查看曲线原图对照</button>
+          <button class="secondary" id="curveEvidenceBtn" data-evidence-hover="1" data-evidence-kind="curve">Preview Source Plot</button>
         </div>
         <table><thead><tr><th>VDS</th><th>Ciss</th><th>Coss</th><th>Crss</th></tr></thead><tbody>${rows}</tbody></table>
       `;
       document.querySelectorAll(".curve-row").forEach(row => row.addEventListener("click", event => selectCurveEvidence(event.currentTarget)));
     }
     function renderTables(tables) {
-      if (!tables.length) { document.getElementById("tablesBox").textContent = "未识别到表格候选。"; return; }
+      if (!tables.length) { document.getElementById("tablesBox").textContent = "No table candidates were detected."; return; }
       document.getElementById("tablesBox").innerHTML = tables.slice(0, 4).map(table => `
         <div class="status"><b>page ${table.page}</b> score ${Math.round(table.score * 100)}%</div>
         <table><tbody>${table.rows.slice(0, 6).map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>
@@ -873,8 +873,8 @@ INDEX_HTML = r"""<!doctype html>
         </div>
         <div class="mono">${escapeHtml(bbox.join(", "))}</div>
         <div class="row" style="margin-top: 7px;">
-          <button class="secondary" data-popover-open="1">放大查看</button>
-          ${item.bbox ? `<button class="secondary" data-popover-fill="1">填入扫描图框</button>` : ""}
+          <button class="secondary" data-popover-open="1">Open Large View</button>
+          ${item.bbox ? `<button class="secondary" data-popover-fill="1">Use as Raster Box</button>` : ""}
         </div>
       `;
       popover.addEventListener("mouseenter", () => clearTimeout(evidencePopoverTimer));
@@ -914,7 +914,7 @@ INDEX_HTML = r"""<!doctype html>
       modal.innerHTML = `
         <div class="image-modal-bar">
           <div><b>${escapeHtml(evidenceTitle(item))}</b> · page ${escapeHtml(item.page || "")} · ${escapeHtml(bbox.join(", "))}</div>
-          <button type="button" data-modal-close="1">关闭</button>
+          <button type="button" data-modal-close="1">Close</button>
         </div>
         <div class="image-modal-stage">
           <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(evidenceTitle(item))}" />
@@ -932,13 +932,13 @@ INDEX_HTML = r"""<!doctype html>
       document.body.appendChild(modal);
     }
     function evidenceTitle(item) {
-      if (item.kind === "field_finding") return item.field || "参数截图";
+      if (item.kind === "field_finding") return item.field || "Parameter Evidence";
       const labels = {
-        curve_plot: "曲线图",
-        table_candidate: "表格截图",
-        page_context: "页面上下文"
+        curve_plot: "Curve Plot",
+        table_candidate: "Table Evidence",
+        page_context: "Page Context"
       };
-      return labels[item.kind] || item.label || item.kind || "截图证据";
+      return labels[item.kind] || item.label || item.kind || "Screenshot Evidence";
     }
     function fillRasterFromEvidence(item) {
       document.getElementById("rasterPage").value = item.page || 1;
@@ -950,17 +950,17 @@ INDEX_HTML = r"""<!doctype html>
       `).join("");
       document.getElementById("rasterResult").innerHTML = `
         <div>${(result.notes || []).map(note => `<div class="status warn">${escapeHtml(note)}</div>`).join("")}</div>
-        <table><thead><tr><th>X</th><th>${escapeHtml(result.curve_name)}</th><th>像素</th></tr></thead><tbody>${rows}</tbody></table>
+        <table><thead><tr><th>X</th><th>${escapeHtml(result.curve_name)}</th><th>Pixel</th></tr></thead><tbody>${rows}</tbody></table>
       `;
     }
     function renderEvaluation(evaluation, fits) {
       if (!evaluation) { document.getElementById("evaluation").textContent = ""; return; }
       const fitRows = (fits || []).map(f => `<tr><td>${escapeHtml(f.model)}</td><td class="mono">${escapeHtml(JSON.stringify(f.parameters))}</td></tr>`).join("");
       document.getElementById("evaluation").innerHTML = `
-        <div class="status"><b>质量评分 ${evaluation.overall_score}/100</b>，等级 ${escapeHtml(evaluation.grade)}</div>
+        <div class="status"><b>Quality score ${evaluation.overall_score}/100</b>, grade ${escapeHtml(evaluation.grade)}</div>
         <div>${Object.entries(evaluation.scores || {}).map(([k,v]) => `<span class="pill">${escapeHtml(k)} ${Math.round(v * 100)}%</span>`).join("")}</div>
         <div>${(evaluation.notes || []).map(n => `<div class="status warn">${escapeHtml(n)}</div>`).join("")}</div>
-        <table><thead><tr><th>模型</th><th>拟合参数</th></tr></thead><tbody>${fitRows}</tbody></table>
+        <table><thead><tr><th>Model</th><th>Fit Parameters</th></tr></thead><tbody>${fitRows}</tbody></table>
       `;
     }
     function getPath(obj, path) {

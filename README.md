@@ -47,6 +47,15 @@ previews, vector capacitance-curve digitization, calibrated raster plot
 digitization, parameter review forms, starter fit recommendations, and a model
 quality score.
 
+Open the hosted browser-only workbench:
+
+[https://lisiqi1983.github.io/datasheet2spice/workbench_app.html](https://lisiqi1983.github.io/datasheet2spice/workbench_app.html)
+
+The hosted workbench runs fully in the browser. It supports PDF text extraction,
+project JSON review, and starter SPICE export. The local Python workbench remains
+the higher-fidelity path for screenshot evidence and calibrated raster plot
+digitization.
+
 Ten-minute path for a new device:
 
 ```powershell
@@ -107,6 +116,7 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [Architecture](docs/architecture.md)
 - [Schema](docs/schema.md)
 - [Plugins](docs/plugins.md)
+- [Web Workbench](docs/workbench.md)
 - [Browser Workbench](docs/webapp.md)
 - [Raster Plot Digitization](docs/raster_digitization.md)
 - [SPICE Dialects](docs/spice_dialects.md)

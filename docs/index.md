@@ -8,6 +8,7 @@ layout: default
 - [Architecture](architecture.md)
 - [Device Schema](schema.md)
 - [Plugin Interfaces](plugins.md)
+- [Web Workbench](workbench.md)
 - [Browser Workbench](webapp.md)
 - [Raster Plot Digitization](raster_digitization.md)
 - [SPICE Dialects](spice_dialects.md)
