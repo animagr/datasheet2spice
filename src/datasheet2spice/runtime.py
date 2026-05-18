@@ -3,9 +3,8 @@
 The project intentionally supports multiple backends behind the same frontend
 contract:
 
-- browser-pages: static GitHub Pages plus JavaScript/WASM helpers,
-- local-python: the high-fidelity local service,
-- remote-api: a future hosted service for AI/OCR and batch jobs.
+- browser-pages: static browser files plus JavaScript/WASM helpers,
+- local-python: the high-fidelity local service.
 """
 
 from __future__ import annotations
@@ -38,8 +37,8 @@ class RuntimeMode:
 
 BROWSER_PAGES = RuntimeMode(
     name="browser-pages",
-    label="Browser Pages Mode",
-    deployment="GitHub Pages static site",
+    label="Static Browser Mode",
+    deployment="Static browser files",
     summary="No-install review and starter model generation in the browser.",
     features=(
         "pdf_text_extraction",
@@ -80,26 +79,7 @@ LOCAL_PYTHON = RuntimeMode(
 )
 
 
-REMOTE_API = RuntimeMode(
-    name="remote-api",
-    label="Remote API Mode",
-    deployment="Future hosted service",
-    summary="Optional cloud extension for AI/OCR, collaboration, and batch model libraries.",
-    features=(
-        "future_ai_extraction",
-        "future_heavy_ocr",
-        "future_batch_processing",
-        "future_team_model_library",
-    ),
-    limitations=(
-        "not_implemented",
-        "requires_service_operations",
-        "requires_privacy_and_key_management",
-    ),
-)
-
-
-RUNTIME_MODES = (BROWSER_PAGES, LOCAL_PYTHON, REMOTE_API)
+RUNTIME_MODES = (BROWSER_PAGES, LOCAL_PYTHON)
 
 
 def runtime_matrix() -> dict[str, Any]:

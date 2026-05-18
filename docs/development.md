@@ -12,7 +12,7 @@ artifacts separate so a datasheet review session does not pollute commits.
 - `src/datasheet2spice/`: Python package, extractors, fitters, emitters,
   validators, service layer, and local HTTP workbench.
 - `web/`: source for the static browser workbench.
-- `docs/`: GitHub Pages documentation and deployable copies of the web
+- `docs/`: local documentation and synchronized static copies of the web
   workbench.
 - `examples/`: small public JSON examples and plugin examples.
 - `tests/`: unit and smoke tests.
@@ -29,8 +29,8 @@ Edit the browser workbench under `web/`. After every frontend change, run:
 python tools/sync_web_frontend.py
 ```
 
-That copies the deployable files into `docs/` for GitHub Pages. CI checks that
-the copies are synchronized.
+That copies the static files into `docs/`. Local tests check that the copies are
+synchronized.
 
 ## Local Datasheets
 
@@ -65,5 +65,5 @@ git diff --exit-code -- docs/workbench_app.html docs/assets/model_emitters.js do
 ```
 
 Also scan public documentation and UI copy for accidental placeholder text,
-locale markers, or non-English copy before publishing. The public GitHub Pages
+locale markers, or non-English copy before publishing. The public documentation
 surface is kept in English.

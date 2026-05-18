@@ -3,17 +3,16 @@ export const API_CONTRACT = "datasheet2spice-api-v1";
 export const RUNTIME_MODES = {
   browserPages: {
     name: "browser-pages",
-    label: "Browser Pages Mode",
-    deployment: "GitHub Pages static site",
-    summary: "No-install PDF text extraction, review, and starter model export.",
+    label: "Static Browser Mode",
+    deployment: "Static browser files",
+    summary: "No-install project review and starter model export without remote code loading.",
     features: [
-      "pdf_text_extraction",
       "manual_review",
       "starter_model_generation",
-      "zip_download",
-      "future_wasm_fitters"
+      "individual_file_download"
     ],
     limitations: [
+      "pdf_extraction_requires_local_python",
       "no_local_simulator_execution",
       "limited_scanned_pdf_ocr",
       "no_server_side_file_storage"
@@ -67,7 +66,7 @@ export class BrowserPagesBackend {
 export class LocalPythonBackend {
   constructor(options = {}) {
     this.mode = "local-python";
-    this.baseUrl = options.baseUrl || "";
+    this.baseUrl = localOnlyBaseUrl(options.baseUrl || "");
   }
 
   async capabilities() {
@@ -119,4 +118,13 @@ async function postJson(url, body) {
   const data = await response.json();
   if (!response.ok || data.error) throw new Error(data.error || `request failed: ${response.status}`);
   return data;
+}
+
+function localOnlyBaseUrl(baseUrl) {
+  if (!baseUrl) return "";
+  const parsed = new URL(baseUrl, window.location.href);
+  if (parsed.origin !== window.location.origin) {
+    throw new Error("local-python backend must use the same origin as the workbench");
+  }
+  return parsed.pathname.replace(/\/$/, "");
 }

@@ -2,8 +2,8 @@
 
 Profiles describe what a component family expects from extraction, fitting, and
 model generation. They deliberately stay metadata-first so the browser
-workbench, local backend, and future remote services can make the same routing
-decisions without importing heavy extractor dependencies.
+workbench and local backend can make the same routing decisions without
+importing heavy extractor dependencies.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ class PowerMosfetProfile:
     family = "mosfet"
     component_types = ("n_power_mosfet", "n_sic_mosfet", "p_power_mosfet")
     supported_models = ("vdmos-static-fast", "abm-basic")
-    browser_scope = "PDF text extraction, project review, and starter model export."
+    browser_scope = "Project review and starter model export without remote code loading."
     local_scope = "PDF screenshots, table recognition, raster digitization, fitting, and quality scoring."
 
     def describe(self) -> dict[str, Any]:
@@ -49,7 +49,7 @@ class PowerDiodeProfile:
     family = "diode"
     component_types = ("power_diode", "fast_recovery_diode", "schottky_diode", "sic_schottky_diode")
     supported_models = ("diode-basic", "diode-abm-dynamic")
-    browser_scope = "PDF text extraction, project review, and starter diode model export."
+    browser_scope = "Project review and starter diode model export without remote code loading."
     local_scope = "PDF screenshots, table recognition, curve digitization, fitting, and quality scoring."
 
     def describe(self) -> dict[str, Any]:

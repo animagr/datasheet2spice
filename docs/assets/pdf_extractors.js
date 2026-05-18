@@ -67,7 +67,7 @@ export const PDF_EXTRACTOR_MODULE = {
   kind: "extractor",
   label: "Browser PDF Text Extractor",
   version: "0.1.0",
-  description: "PDF.js text extraction plus starter project heuristics for GitHub Pages mode.",
+  description: "Starter project heuristics used when a trusted local PDF parser is supplied.",
   component_profiles: ["mosfet.power", "diode.power"],
   runtime_modes: ["browser-pages"],
   capabilities: ["extract_pdf_text", "extract_project_from_text", "extract_mosfet_from_text", "extract_diode_from_text"],

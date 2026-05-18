@@ -4,20 +4,20 @@ layout: default
 
 # Deployment Modes
 
-The project supports a lightweight hosted workbench and a higher-fidelity local
-backend. Both should use the same project JSON and model-generation semantics.
+The project supports lightweight static browser files and a higher-fidelity
+local backend. Both should use the same project JSON and model-generation
+semantics.
 
-## Browser Pages Mode
+## Static Browser Mode
 
-Target: GitHub Pages.
+Target: local/static files opened by a browser.
 
 Use this mode for:
 
-- public demos,
-- no-install PDF text extraction,
+- local demos,
 - manual project review,
 - starter model generation,
-- ZIP downloads,
+- individual file downloads,
 - future Rust/WASM fitting and curve helpers.
 
 Expected limits:
@@ -46,21 +46,6 @@ The current local HTTP server is intentionally small and calls
 the same service functions through a cleaner REST API without changing the
 frontend contract.
 
-## Future Remote API
-
-Target: optional hosted service.
-
-Use this mode later for:
-
-- AI-assisted extraction,
-- stronger OCR and layout understanding,
-- batch processing,
-- team model libraries,
-- collaboration and review history.
-
-This mode requires privacy, cost, and API-key design, so it should not block the
-open-source local and GitHub Pages workflows.
-
 ## Frontend Contract
 
 The web app should depend on a small set of backend operations:
@@ -76,18 +61,18 @@ emitModelBundle
 runValidation
 ```
 
-Adapters can implement those operations through browser-only JavaScript/WASM,
-the local Python backend, or a future remote API.
+Adapters can implement those operations through browser-only JavaScript/WASM or
+the local Python backend.
 The formal operation list is exported by `datasheet2spice.contracts.service_contract()`
 and documented in [Interface Contracts](interface_contracts.md).
 
-The lightweight frontend source lives under `web/`. GitHub Pages still publishes
-from `docs/`, so `tools/sync_web_frontend.py` copies the source frontend files
-into the deployable docs tree and tests verify the copies stay identical.
+The lightweight frontend source lives under `web/`. `tools/sync_web_frontend.py`
+copies the source frontend files into `docs/` so documentation and static files
+stay synchronized.
 
 The browser workbench frontend is split into small ES modules:
 
 - `workbench_app.js` for DOM wiring,
 - `workbench_runtime.js` for backend mode selection,
-- `pdf_extractors.js` for browser PDF text heuristics,
+- `pdf_extractors.js` for extraction heuristics when a trusted local parser is supplied,
 - `model_emitters.js` for static starter SPICE bundle generation.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from email.parser import BytesParser
 from email.policy import default
 import json
+import os
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -25,9 +26,16 @@ from .service import (
 
 
 DEFAULT_WEB_OUT = Path("build/webapp")
+MAX_REQUEST_BYTES = 50 * 1024 * 1024
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
 def serve(host: str = "127.0.0.1", port: int = 8765, out_dir: str | Path = DEFAULT_WEB_OUT) -> ThreadingHTTPServer:
+    if host not in LOCAL_HOSTS and os.environ.get("DATASHEET2SPICE_ALLOW_NETWORK_BIND") != "1":
+        raise ValueError(
+            "Refusing to bind the workbench to a non-local host. "
+            "Use 127.0.0.1, localhost, or set DATASHEET2SPICE_ALLOW_NETWORK_BIND=1 intentionally."
+        )
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -63,6 +71,8 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
+        if self._reject_large_request() or self._reject_cross_origin():
+            return
         if self.path == "/api/extract":
             self._handle_extract()
             return
@@ -79,6 +89,23 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003 - BaseHTTPRequestHandler API
         print(f"{self.address_string()} - {format % args}")
+
+    def _reject_large_request(self) -> bool:
+        if _content_length(self) <= MAX_REQUEST_BYTES:
+            return False
+        self._send_json({"error": "request body too large"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+        return True
+
+    def _reject_cross_origin(self) -> bool:
+        origin = self.headers.get("Origin")
+        if not origin:
+            return False
+        parsed = urlparse(origin)
+        host = self.headers.get("Host", "")
+        if parsed.scheme not in {"http", "https"} or parsed.netloc != host:
+            self._send_json({"error": "cross-origin requests are not allowed"}, HTTPStatus.FORBIDDEN)
+            return True
+        return False
 
     def _handle_extract(self) -> None:
         try:

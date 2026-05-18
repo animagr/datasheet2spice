@@ -80,7 +80,10 @@ def register(registry):
     registry.extractors["my-extractor"] = MyExtractor()
 ```
 
-The CLI loads these entry points before `emit` and `plugins`.
+Entry point plugins are disabled by default because loading one executes
+arbitrary installed Python. For trusted local extensions only, call
+`load_plugins(include_entrypoints=True)` from Python or set
+`DATASHEET2SPICE_ENABLE_ENTRYPOINT_PLUGINS=1` before running CLI commands.
 
 ## Optional PDF Extraction
 

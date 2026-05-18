@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "datasheet2spice"
-version = "1.0.0"
+version = "1.0.1"
 description = "Traceable datasheet-to-SPICE model generation for electronic components, starting with power MOSFETs and power diodes."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,7 +32,6 @@ dev = ["build>=1.2", "hatchling>=1.25"]
 
 [project.urls]
 Homepage = "https://github.com/lisiqi1983/datasheet2spice"
-Documentation = "https://lisiqi1983.github.io/datasheet2spice/"
 Issues = "https://github.com/lisiqi1983/datasheet2spice/issues"
 Source = "https://github.com/lisiqi1983/datasheet2spice"
 

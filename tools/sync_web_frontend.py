@@ -1,4 +1,4 @@
-"""Sync the lightweight web frontend into the GitHub Pages docs tree."""
+"""Sync the lightweight web frontend into the local docs tree."""
 
 from __future__ import annotations
 

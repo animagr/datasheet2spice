@@ -81,7 +81,7 @@
   <header>
     <h1>datasheet2spice Web Workbench</h1>
     <div class="header-actions">
-      <span id="runtimeBadge" class="runtime-badge">Browser Pages Mode</span>
+      <span id="runtimeBadge" class="runtime-badge">Static Browser Mode</span>
       <a class="button-link secondary" href="./">Documentation</a>
     </div>
   </header>
@@ -90,8 +90,9 @@
       <h2>Input</h2>
       <div class="body stack">
         <div class="status warn">
-          This hosted version runs fully in the browser. It can extract text from many PDF datasheets,
-          but screenshot evidence and calibrated raster digitization still require the local Python workbench.
+          This hardened static workbench does not load third-party CDN code. PDF extraction,
+          ZIP packaging, screenshot evidence, and calibrated raster digitization require the
+          local Python workbench.
         </div>
         <div>
           <label for="componentProfile">Component profile</label>
@@ -155,7 +156,7 @@
             <option value="all">All Major Dialects</option>
           </select>
         </div>
-        <button id="generateBtn" disabled>Generate ZIP Bundle</button>
+        <button id="generateBtn" disabled>Generate Files</button>
         <div id="generateStatus" class="status">Generation is available after a project is loaded.</div>
         <div id="files" class="files"></div>
         <div id="report" class="preview"></div>
@@ -163,7 +164,6 @@
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script type="module" src="./assets/workbench_app.js"></script>
 </body>
 </html>

@@ -9,8 +9,7 @@ layout: default
 - JSON project schema with provenance.
 - Backward-compatible `DeviceProject` plus the broader `ComponentProject`
   direction.
-- Runtime mode contract for GitHub Pages, local Python backend, and future
-  remote API mode.
+- Runtime mode contract for static browser files and the local Python backend.
 - Component profile registry, starting with `mosfet.power` and `diode.power`.
 - CSV curve import for digitized capacitance plots.
 - Built-in `vdmos-static-fast`, `abm-basic`, `diode-basic`, and
@@ -18,13 +17,14 @@ layout: default
 - LTspice, ngspice, common, PSpice, HSPICE, Xyce, and experimental QSPICE
   starter decks.
 - Extraction scoring and model benchmark evidence commands.
-- Plugin entry points for third-party extractors, validators, and emitters.
+- Opt-in plugin entry points for trusted third-party extractors, validators,
+  and emitters.
 - Unit tests, CI, examples, and license documentation.
 
 ## Near-Term Improvements
 
 - Split the current workbench into a TypeScript frontend and a local service
-  adapter while preserving the hosted GitHub Pages demo.
+  adapter while preserving the static browser demo.
 - Move browser-heavy helpers into Web Workers and later Rust/WASM modules.
 - Raster-plot digitization for scanned datasheets.
 - More validators for gate charge, diode curves, and switching-test conditions.

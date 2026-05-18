@@ -26,6 +26,11 @@ Open:
 http://127.0.0.1:8765
 ```
 
+The local server refuses non-local host bindings by default. If you deliberately
+need LAN exposure for a trusted environment, set
+`DATASHEET2SPICE_ALLOW_NETWORK_BIND=1` before using a non-local `--host`.
+Browser POST requests are also limited to the same origin as the local server.
+
 ## Workflow
 
 <img src="assets/diagrams/series-datasheet-flow.svg" alt="Series datasheet extraction flow from upload to model generation">

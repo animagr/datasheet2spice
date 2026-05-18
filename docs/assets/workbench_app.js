@@ -2,9 +2,6 @@ import { createWorkbenchBackend, formatRuntimeBadge } from "./workbench_runtime.
 import { WorkbenchModuleRegistry } from "./module_contracts.js";
 import { DEMO_PROJECT, DIODE_DEMO_PROJECT, PDF_EXTRACTOR_MODULE } from "./pdf_extractors.js";
 import { MODEL_EMITTER_MODULE } from "./model_emitters.js";
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs";
 
 let currentProject = null;
 let currentFindings = [];
@@ -26,7 +23,7 @@ function initRuntimeBadge() {
     $("runtimeBadge").textContent = formatRuntimeBadge(capabilities);
     $("runtimeBadge").title = capabilities.runtime?.summary || "";
   }).catch(() => {
-    $("runtimeBadge").textContent = "Browser Pages Mode / datasheet2spice-api-v1";
+    $("runtimeBadge").textContent = "Static Browser Mode / datasheet2spice-api-v1";
   });
 }
 
@@ -47,23 +44,11 @@ async function onExtractPdf() {
     setStatus("inputStatus", "Please choose a PDF first.", "warn");
     return;
   }
-  try {
-    setStatus("inputStatus", "Reading PDF in the browser...");
-    const text = await pdfExtractor.extractPdfText(pdfjsLib, file);
-    const extraction = pdfExtractor.extractProjectFromText(text, file.name, selectedProfile());
-    saveProject(extraction.project, extraction.findings, extraction);
-    const series = extraction.series;
-    const needsChoice = series && series.parts?.length > 1 && !series.has_default;
-    setStatus(
-      "inputStatus",
-      needsChoice
-        ? `Detected ${series.parts.length} series parts in ${file.name}. Choose the target part before generation.`
-        : `Extracted ${extraction.findings.length} starter fields from ${file.name}. Review the JSON before generation.`,
-      needsChoice ? "warn" : ""
-    );
-  } catch (err) {
-    setStatus("inputStatus", `PDF extraction failed: ${err.message}`, "bad");
-  }
+  setStatus(
+    "inputStatus",
+    "PDF extraction is disabled in the hardened static workbench because no third-party CDN code is loaded. Use the local Python workbench or load a DeviceProject JSON.",
+    "warn"
+  );
 }
 
 async function onLoadJson() {
@@ -100,10 +85,6 @@ async function onGenerateBundle() {
     setStatus("generateStatus", "Select at least one model family.", "warn");
     return;
   }
-  if (!window.JSZip) {
-    setStatus("generateStatus", "ZIP library did not load.", "bad");
-    return;
-  }
   const generateAll = $("generateAllSeries").checked && currentVariantProjects.length > 1;
   const projects = generateAll ? currentVariantProjects : [project];
   const files = {};
@@ -120,13 +101,11 @@ async function onGenerateBundle() {
       summary: currentSeries?.summary || null
     }, null, 2) + "\n";
   }
-  const zip = new window.JSZip();
-  for (const [name, content] of Object.entries(files)) zip.file(name, content);
-  const blob = await zip.generateAsync({ type: "blob" });
-  const url = URL.createObjectURL(blob);
-  const zipName = generateAll ? "series_models.zip" : `${modelEmitter.modelName(project)}_models.zip`;
-  $("files").innerHTML = `<a href="${url}" download="${zipName}">Download ${zipName}</a>` +
-    Object.keys(files).sort().map(name => `<span class="mono">${escapeHtml(name)}</span>`).join("");
+  $("files").innerHTML = Object.keys(files).sort().map(name => {
+    const blob = new Blob([files[name]], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    return `<a href="${url}" download="${escapeHtml(downloadName(name))}">${escapeHtml(name)}</a>`;
+  }).join("");
   $("report").textContent = generateAll ? `Generated ${projects.length} part folders.` : files[`${modelEmitter.modelName(project)}_README.txt`];
   setStatus("generateStatus", `Generated ${Object.keys(files).length} files.`);
 }
@@ -242,4 +221,9 @@ function setStatus(id, text, kind = "") {
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function downloadName(name) {
+  const parts = String(name).split("/");
+  return parts[parts.length - 1] || "model.txt";
 }

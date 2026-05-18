@@ -13,8 +13,8 @@
     </marker>
   </defs>
   <rect x="36" y="38" width="250" height="74" class="head"/>
-  <text x="58" y="68" class="text">GitHub Pages</text>
-  <text x="58" y="92" class="small">Browser PDF.js, JSZip, starter export</text>
+  <text x="58" y="68" class="text">Static Browser</text>
+  <text x="58" y="92" class="small">Browser JSON review and starter export</text>
   <rect x="355" y="38" width="250" height="74" class="head"/>
   <text x="377" y="68" class="text">Local Python Backend</text>
   <text x="377" y="92" class="small">PyMuPDF, evidence, fitting, digitization</text>

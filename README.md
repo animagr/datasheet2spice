@@ -1,9 +1,5 @@
 # datasheet2spice
 
-[![tests](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/tests.yml/badge.svg)](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/tests.yml)
-[![pages](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/pages.yml/badge.svg)](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/pages.yml)
-[![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-
 `datasheet2spice` turns reviewable datasheet evidence into starter SPICE models.
 It is built for power electronics engineers who need transparent MOSFET and
 diode models, not black-box netlists whose assumptions are impossible to audit.
@@ -12,9 +8,9 @@ The project combines PDF extraction, editable device JSON, model emitters,
 SPICE dialect support, and validation benchmarks so every generated parameter
 can be checked against a datasheet, vendor model, or lab waveform.
 
-[Try the hosted workbench](https://lisiqi1983.github.io/datasheet2spice/workbench_app.html) |
-[Read the docs](https://lisiqi1983.github.io/datasheet2spice/) |
-[Model validation](https://lisiqi1983.github.io/datasheet2spice/model_validation.html) |
+[Open the static workbench](docs/workbench_app.html) |
+[Read the docs](docs/index.md) |
+[Model validation](docs/model_validation.md) |
 [Start contributing](CONTRIBUTING.md)
 
 ![datasheet2spice workflow](docs/assets/diagrams/readme-workflow.svg)
@@ -38,8 +34,8 @@ not vendor-qualified or safety-qualified models.
 
 - Component profiles for power MOSFET / SiC MOSFET and power diode / Schottky /
   SiC diode.
-- Browser workbench for PDF text extraction, editable project JSON, diode
-  series-part selection, and starter SPICE export.
+- Hardened static browser workbench for editable project JSON and starter
+  SPICE export without third-party CDN code.
 - Local Python workbench with table recognition, screenshot evidence,
   vector/raster curve digitization, fitting, and model evaluation.
 - Model emitters for `vdmos-static-fast`, `abm-basic`, `diode-basic`, and

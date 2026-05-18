@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from importlib.metadata import entry_points
 from typing import Any, Callable, Protocol
 
@@ -190,10 +191,18 @@ def load_entrypoint_plugins(group: str = "datasheet2spice.plugins") -> list[str]
     return loaded
 
 
-def load_plugins(include_entrypoints: bool = True) -> list[str]:
-    """Load built-in plugins and optionally installed third-party plugins."""
+def load_plugins(include_entrypoints: bool | None = None) -> list[str]:
+    """Load built-in plugins and only opt-in third-party entry points.
+
+    Entry point plugins execute arbitrary installed Python. The secure default
+    is built-ins only; set ``include_entrypoints=True`` or the environment
+    variable ``DATASHEET2SPICE_ENABLE_ENTRYPOINT_PLUGINS=1`` for trusted local
+    extensions.
+    """
 
     load_builtin_plugins()
+    if include_entrypoints is None:
+        include_entrypoints = os.environ.get("DATASHEET2SPICE_ENABLE_ENTRYPOINT_PLUGINS") == "1"
     return load_entrypoint_plugins() if include_entrypoints else []
 
 

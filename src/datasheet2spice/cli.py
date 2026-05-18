@@ -211,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("emit", help="emit SPICE models and starter decks")
     p.add_argument("project")
     p.add_argument("--out", default="build")
-    p.add_argument("--model", default="abm-basic", help="emitter id, including third-party plugin emitters")
+    p.add_argument("--model", default="abm-basic", help="emitter id; third-party plugin emitters require explicit plugin opt-in")
     p.add_argument("--dialect", choices=[*SUPPORTED_DIALECTS, "all"], default="ltspice")
     p.add_argument("--all", action="store_true")
     p.set_defaults(func=cmd_emit)

@@ -5,7 +5,7 @@ type: software
 authors:
   - name: datasheet2spice contributors
 repository-code: "https://github.com/lisiqi1983/datasheet2spice"
-url: "https://lisiqi1983.github.io/datasheet2spice/"
+url: "https://github.com/lisiqi1983/datasheet2spice"
 license: Apache-2.0
 keywords:
   - SPICE

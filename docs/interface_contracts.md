@@ -6,8 +6,7 @@ layout: default
 
 `datasheet2spice` uses two stable JSON-first contracts:
 
-- `datasheet2spice-api-v1`: operations exposed by browser, local, or future
-  remote backends.
+- `datasheet2spice-api-v1`: operations exposed by browser or local backends.
 - `datasheet2spice-module-v1`: manifests exposed by extractors, model emitters,
   fitters, validators, component profiles, backend adapters, and tool panels.
 
@@ -47,8 +46,7 @@ Module ids should use lowercase letters, numbers, `.`, `_`, and `-`.
 - `validator`: checks schema, units, physical consistency, and model readiness.
 - `tool-panel`: adds a frontend tool such as gate-drive, thermal RC, or
   double-pulse helpers.
-- `backend-adapter`: connects the frontend to browser, local, or remote
-  execution.
+- `backend-adapter`: connects the frontend to browser or local execution.
 
 ## Backend Operations
 
@@ -61,9 +59,10 @@ The shared API contract includes these operations:
 - `digitizeCurve`
 - `runValidation`
 
-Not every runtime has to implement every operation. GitHub Pages mode should
-provide lightweight extraction and model export. The local Python backend should
-provide high-fidelity extraction, evidence, fitting, and simulator adapters.
+Not every runtime has to implement every operation. Static browser mode should
+provide lightweight JSON review and model export. The local Python backend
+should provide high-fidelity extraction, evidence, fitting, and simulator
+adapters.
 
 `extractPdf` responses return a selected `project`. When an extractor detects a
 multi-part datasheet, it should also return:
@@ -134,5 +133,6 @@ Browser modules are registered with `WorkbenchModuleRegistry` from
 - `vdmos-static-fast`: VDMOS starter model emitter.
 - `capacitance-csv`: CSV capacitance curve extractor.
 - `schema`: project schema validator.
-- `browser-pdf-text-extractor`: hosted browser PDF text extractor.
+- `browser-pdf-text-extractor`: browser extraction heuristics used only when a
+  trusted local PDF parser is supplied.
 - `browser-spice-starter-emitter`: hosted browser SPICE starter emitter.
