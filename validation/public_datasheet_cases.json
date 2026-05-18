@@ -1,0 +1,69 @@
+{
+  "schema": "datasheet2spice-validation-v1",
+  "purpose": "Public datasheet regression candidates. Store URLs and expected values only; keep downloaded PDFs in a local cache.",
+  "cases": [
+    {
+      "id": "diodes-b5819ws-series",
+      "vendor": "Diodes Incorporated",
+      "part_numbers": ["B5817WS", "B5818WS", "B5819WS"],
+      "component_profile": "diode.power",
+      "datasheet_url": "https://www.diodes.com/part/view/B5819WS",
+      "layout_tags": ["series-datasheet", "schottky", "table-heavy", "small-signal-package"],
+      "notes": "Good regression case for series-part column selection when the filename does not identify the target part.",
+      "expected": {
+        "ratings.vrrm_v": {"value": 40, "rel_tol": 0.02},
+        "ratings.if_av_a": {"value": 1.0, "rel_tol": 0.02}
+      },
+      "reference_model": {
+        "availability": "vendor-page",
+        "usage": "optional baseline when a redistributable SPICE model is available"
+      }
+    },
+    {
+      "id": "st-stpst5h100",
+      "vendor": "STMicroelectronics",
+      "part_numbers": ["STPST5H100"],
+      "component_profile": "diode.power",
+      "datasheet_url": "https://www.st.com/en/diodes-and-rectifiers/stpst5h100.html",
+      "layout_tags": ["single-part", "power-schottky", "vendor-spice-model"],
+      "notes": "Useful for comparing diode-basic and diode-abm-dynamic against a vendor PSpice model.",
+      "expected": {
+        "ratings.vrrm_v": {"value": 100, "rel_tol": 0.02},
+        "ratings.if_av_a": {"value": 5, "rel_tol": 0.1}
+      },
+      "reference_model": {
+        "availability": "vendor-page",
+        "usage": "PSpice reference for static and switching smoke benches"
+      }
+    },
+    {
+      "id": "toshiba-1ss383",
+      "vendor": "Toshiba",
+      "part_numbers": ["1SS383"],
+      "component_profile": "diode.power",
+      "datasheet_url": "https://toshiba.semicon-storage.com/us/semiconductor/product/diodes/detail.1SS383.html",
+      "layout_tags": ["single-part", "small-signal", "multiple-simulator-models"],
+      "notes": "Vendor page lists PSpice, LTspice, SIMetrix, and ELDO model formats; good dialect compatibility case.",
+      "reference_model": {
+        "availability": "vendor-page",
+        "usage": "cross-dialect syntax and convergence baseline"
+      }
+    },
+    {
+      "id": "wolfspeed-c3d06060",
+      "vendor": "Wolfspeed",
+      "part_numbers": ["C3D06060"],
+      "component_profile": "diode.power",
+      "datasheet_url": "https://www.wolfspeed.com/products/power/sic-schottky-diodes/600v-silicon-carbide-schottky-diodes/",
+      "layout_tags": ["sic-schottky", "zero-qrr", "capacitance-curve"],
+      "notes": "Stress case for avoiding artificial reverse-recovery charge in SiC Schottky models.",
+      "expected": {
+        "ratings.vrrm_v": {"value": 600, "rel_tol": 0.02}
+      },
+      "reference_model": {
+        "availability": "vendor-page",
+        "usage": "zero-Qrr transient and capacitance-shape baseline"
+      }
+    }
+  ]
+}

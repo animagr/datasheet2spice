@@ -57,6 +57,8 @@ Run these checks before pushing:
 ```powershell
 $env:PYTHONPATH='src'
 python -m unittest discover -s tests -v
+datasheet2spice score-case examples/demo_sic_diode/device.json validation/golden/demo_sic_diode.case.json
+datasheet2spice benchmark-model examples/demo_sic_diode/device.json --out build/bench-diode --model diode-basic --model diode-abm-dynamic --dialect all
 git diff --check
 python tools/sync_web_frontend.py
 git diff --exit-code -- docs/workbench_app.html docs/assets/model_emitters.js docs/assets/module_contracts.js docs/assets/pdf_extractors.js docs/assets/workbench_app.js docs/assets/workbench_runtime.js

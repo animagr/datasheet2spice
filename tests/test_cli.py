@@ -8,6 +8,8 @@ from datasheet2spice.plugins import registry
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = ROOT / "examples" / "demo_sic_mosfet" / "device.json"
+DIODE = ROOT / "examples" / "demo_sic_diode" / "device.json"
+DIODE_CASE = ROOT / "validation" / "golden" / "demo_sic_diode.case.json"
 
 
 class CliTests(unittest.TestCase):
@@ -58,6 +60,34 @@ class CliTests(unittest.TestCase):
         finally:
             cli.load_plugins = original
             registry.emitters.pop("fake-model", None)
+
+    def test_score_case(self):
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td) / "score.json"
+            rc = cli.main(["score-case", str(DIODE), str(DIODE_CASE), "--out", str(out)])
+            self.assertEqual(rc, 0)
+            self.assertIn('"status": "pass"', out.read_text(encoding="utf-8"))
+
+    def test_benchmark_model_generation_only(self):
+        with tempfile.TemporaryDirectory() as td:
+            rc = cli.main(
+                [
+                    "benchmark-model",
+                    str(DIODE),
+                    "--out",
+                    td,
+                    "--model",
+                    "diode-basic",
+                    "--model",
+                    "diode-abm-dynamic",
+                    "--dialect",
+                    "common",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            report = Path(td) / "benchmark_report.json"
+            self.assertTrue(report.exists())
+            self.assertIn("diode-abm-dynamic", report.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

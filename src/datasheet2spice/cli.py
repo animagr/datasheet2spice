@@ -9,6 +9,7 @@ import sys
 
 from .dialects import ALL_DIALECTS, SUPPORTED_DIALECTS
 from .plugins import load_plugins, plugin_load_errors, registry
+from .quality import benchmark_project_models, load_case, render_score_report, score_project_against_case
 from .report import render_report
 from .schema import DeviceProject
 from .validate import validate_project, run_ltspice
@@ -152,6 +153,38 @@ def cmd_run_ltspice(args: argparse.Namespace) -> int:
     return 1 if result["returncode"] or result["fatal"] else 0
 
 
+def cmd_score_case(args: argparse.Namespace) -> int:
+    project = _load_project(Path(args.project))
+    case = load_case(args.case)
+    result = score_project_against_case(project, case)
+    text = json.dumps(result, ensure_ascii=False, indent=2) + "\n" if args.format == "json" else render_score_report(result)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(args.out)
+    else:
+        print(text, end="")
+    return 0 if result["status"] == "pass" else 1
+
+
+def cmd_benchmark_model(args: argparse.Namespace) -> int:
+    project = _load_project(Path(args.project))
+    dialects = list(ALL_DIALECTS) if args.dialect == "all" else [args.dialect]
+    models = args.model
+    if args.run_ltspice and not args.ltspice:
+        print("ERROR: --ltspice is required with --run-ltspice", file=sys.stderr)
+        return 1
+    result = benchmark_project_models(
+        project,
+        args.out,
+        models=models,
+        dialects=dialects,
+        ltspice_exe=args.ltspice if args.run_ltspice else None,
+        timeout_s=args.timeout,
+    )
+    print(Path(args.out) / "benchmark_report.json")
+    return 1 if result["summary"]["failed_simulations"] else 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from .webapp import serve
 
@@ -206,6 +239,23 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ltspice", required=True)
     p.add_argument("--timeout", type=int, default=120)
     p.set_defaults(func=cmd_run_ltspice)
+
+    p = sub.add_parser("score-case", help="score a project against a golden validation case")
+    p.add_argument("project")
+    p.add_argument("case")
+    p.add_argument("--out")
+    p.add_argument("--format", choices=["json", "md"], default="json")
+    p.set_defaults(func=cmd_score_case)
+
+    p = sub.add_parser("benchmark-model", help="generate models and record simulator benchmark evidence")
+    p.add_argument("project")
+    p.add_argument("--out", default="build/benchmark")
+    p.add_argument("--model", action="append", required=True, help="model emitter id; repeat for multiple emitters")
+    p.add_argument("--dialect", choices=[*SUPPORTED_DIALECTS, "all"], default="ltspice")
+    p.add_argument("--run-ltspice", action="store_true", help="run generated LTspice decks when dialect is ltspice")
+    p.add_argument("--ltspice", help="path to LTspice executable")
+    p.add_argument("--timeout", type=int, default=120)
+    p.set_defaults(func=cmd_benchmark_model)
 
     p = sub.add_parser("serve", help="run the local browser PDF extraction workbench")
     p.add_argument("--host", default="127.0.0.1")

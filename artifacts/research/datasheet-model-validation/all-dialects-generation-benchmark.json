@@ -1,0 +1,280 @@
+{
+  "schema": "datasheet2spice-benchmark-v1",
+  "part_number": "DEMO_DIODE_650",
+  "models": [
+    "diode-basic",
+    "diode-abm-dynamic"
+  ],
+  "dialects": [
+    "common",
+    "ltspice",
+    "ngspice",
+    "pspice",
+    "hspice",
+    "xyce",
+    "qspice"
+  ],
+  "total_elapsed_s": 0.0084,
+  "summary": {
+    "generated_files": 28,
+    "generated_decks": 14,
+    "simulated_decks": 0,
+    "failed_simulations": 0,
+    "max_elapsed_s": null,
+    "mean_elapsed_s": null
+  },
+  "records": [
+    {
+      "model": "diode-basic",
+      "dialect": "common",
+      "filename": "DEMO_DIODE_650_diode.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\common\\DEMO_DIODE_650_diode.lib",
+      "kind": "model",
+      "bytes": 425,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "common",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\common\\DEMO_DIODE_650_reverse_recovery_diode.cir",
+      "kind": "deck",
+      "bytes": 293,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_diode_ltspice.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\ltspice\\DEMO_DIODE_650_diode_ltspice.lib",
+      "kind": "model",
+      "bytes": 426,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_ltspice.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_ltspice.cir",
+      "kind": "deck",
+      "bytes": 301,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "ngspice",
+      "filename": "DEMO_DIODE_650_diode_ngspice.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\ngspice\\DEMO_DIODE_650_diode_ngspice.lib",
+      "kind": "model",
+      "bytes": 426,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "ngspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_ngspice.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\ngspice\\DEMO_DIODE_650_reverse_recovery_diode_ngspice.cir",
+      "kind": "deck",
+      "bytes": 301,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "pspice",
+      "filename": "DEMO_DIODE_650_diode_pspice.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\pspice\\DEMO_DIODE_650_diode_pspice.lib",
+      "kind": "model",
+      "bytes": 425,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "pspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_pspice.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\pspice\\DEMO_DIODE_650_reverse_recovery_diode_pspice.cir",
+      "kind": "deck",
+      "bytes": 300,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "hspice",
+      "filename": "DEMO_DIODE_650_diode_hspice.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\hspice\\DEMO_DIODE_650_diode_hspice.lib",
+      "kind": "model",
+      "bytes": 425,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "hspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_hspice.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\hspice\\DEMO_DIODE_650_reverse_recovery_diode_hspice.cir",
+      "kind": "deck",
+      "bytes": 300,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "xyce",
+      "filename": "DEMO_DIODE_650_diode_xyce.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\xyce\\DEMO_DIODE_650_diode_xyce.lib",
+      "kind": "model",
+      "bytes": 423,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "xyce",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_xyce.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\xyce\\DEMO_DIODE_650_reverse_recovery_diode_xyce.cir",
+      "kind": "deck",
+      "bytes": 298,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "qspice",
+      "filename": "DEMO_DIODE_650_diode_qspice.lib",
+      "path": "build\\quality-all-dialects\\diode-basic\\qspice\\DEMO_DIODE_650_diode_qspice.lib",
+      "kind": "model",
+      "bytes": 425,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "qspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_qspice.cir",
+      "path": "build\\quality-all-dialects\\diode-basic\\qspice\\DEMO_DIODE_650_reverse_recovery_diode_qspice.cir",
+      "kind": "deck",
+      "bytes": 300,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "common",
+      "filename": "DEMO_DIODE_650_diode_abm.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\common\\DEMO_DIODE_650_diode_abm.lib",
+      "kind": "model",
+      "bytes": 988,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "common",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\common\\DEMO_DIODE_650_reverse_recovery_diode_abm.cir",
+      "kind": "deck",
+      "bytes": 297,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_diode_abm_ltspice.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\ltspice\\DEMO_DIODE_650_diode_abm_ltspice.lib",
+      "kind": "model",
+      "bytes": 977,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_ltspice.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_ltspice.cir",
+      "kind": "deck",
+      "bytes": 305,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ngspice",
+      "filename": "DEMO_DIODE_650_diode_abm_ngspice.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\ngspice\\DEMO_DIODE_650_diode_abm_ngspice.lib",
+      "kind": "model",
+      "bytes": 977,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ngspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_ngspice.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\ngspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_ngspice.cir",
+      "kind": "deck",
+      "bytes": 305,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "pspice",
+      "filename": "DEMO_DIODE_650_diode_abm_pspice.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\pspice\\DEMO_DIODE_650_diode_abm_pspice.lib",
+      "kind": "model",
+      "bytes": 988,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "pspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_pspice.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\pspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_pspice.cir",
+      "kind": "deck",
+      "bytes": 304,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "hspice",
+      "filename": "DEMO_DIODE_650_diode_abm_hspice.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\hspice\\DEMO_DIODE_650_diode_abm_hspice.lib",
+      "kind": "model",
+      "bytes": 976,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "hspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_hspice.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\hspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_hspice.cir",
+      "kind": "deck",
+      "bytes": 304,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "xyce",
+      "filename": "DEMO_DIODE_650_diode_abm_xyce.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\xyce\\DEMO_DIODE_650_diode_abm_xyce.lib",
+      "kind": "model",
+      "bytes": 974,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "xyce",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_xyce.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\xyce\\DEMO_DIODE_650_reverse_recovery_diode_abm_xyce.cir",
+      "kind": "deck",
+      "bytes": 302,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "qspice",
+      "filename": "DEMO_DIODE_650_diode_abm_qspice.lib",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\qspice\\DEMO_DIODE_650_diode_abm_qspice.lib",
+      "kind": "model",
+      "bytes": 976,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "qspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_qspice.cir",
+      "path": "build\\quality-all-dialects\\diode-abm-dynamic\\qspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_qspice.cir",
+      "kind": "deck",
+      "bytes": 304,
+      "status": "generated"
+    }
+  ]
+}

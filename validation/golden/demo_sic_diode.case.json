@@ -1,0 +1,33 @@
+{
+  "schema": "datasheet2spice-validation-case-v1",
+  "id": "demo-sic-diode",
+  "vendor": "Demo",
+  "part_numbers": ["DEMO_DIODE_650"],
+  "component_profile": "diode.power",
+  "datasheet_url": "browser-demo",
+  "layout_tags": ["synthetic", "single-part", "diode"],
+  "required_fields": [
+    "device.part_number",
+    "ratings.vrrm_v",
+    "static.forward_voltage.vf_v",
+    "dynamic.junction_capacitance.cj0_pf",
+    "dynamic.reverse_recovery.qrr_nc"
+  ],
+  "expected": {
+    "device.part_number": {"value": "DEMO_DIODE_650"},
+    "ratings.vrrm_v": {"value": 650, "rel_tol": 0.0},
+    "ratings.if_av_a": {"value": 20, "rel_tol": 0.0},
+    "ratings.ifsm_a": {"value": 180, "rel_tol": 0.0},
+    "static.forward_voltage.vf_v": {"value": 1.7, "rel_tol": 0.0},
+    "static.forward_voltage.if_a": {"value": 20, "rel_tol": 0.0},
+    "static.leakage.ir_ua": {"value": 50, "rel_tol": 0.0},
+    "dynamic.junction_capacitance.cj0_pf": {"value": 120, "rel_tol": 0.0},
+    "dynamic.reverse_recovery.trr_ns": {"value": 12, "rel_tol": 0.0},
+    "dynamic.reverse_recovery.qrr_nc": {"value": 0, "rel_tol": 0.0}
+  },
+  "benchmarks": {
+    "models": ["diode-basic", "diode-abm-dynamic"],
+    "dialects": ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"],
+    "metrics": ["generation_success", "ltspice_convergence", "reverse_recovery_current_shape"]
+  }
+}

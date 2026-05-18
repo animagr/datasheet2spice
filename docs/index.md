@@ -16,6 +16,7 @@ layout: default
 - [Raster Plot Digitization](raster_digitization.md)
 - [SPICE Dialects](spice_dialects.md)
 - [Modeling Notes](modeling.md)
+- [Model Validation](model_validation.md)
 - [Limitations](limitations.md)
 - [License Strategy](license_strategy.md)
 - [Roadmap](roadmap.md)

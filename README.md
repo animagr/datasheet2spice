@@ -96,6 +96,13 @@ Run tests:
 python -m unittest discover -s tests -v
 ```
 
+Run extraction and model benchmark quality gates:
+
+```powershell
+datasheet2spice score-case examples/demo_sic_diode/device.json validation/golden/demo_sic_diode.case.json
+datasheet2spice benchmark-model examples/demo_sic_diode/device.json --out build/bench-diode --model diode-basic --model diode-abm-dynamic --dialect all
+```
+
 Create a new project file:
 
 ```powershell
@@ -154,6 +161,7 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [Raster Plot Digitization](docs/raster_digitization.md)
 - [SPICE Dialects](docs/spice_dialects.md)
 - [Modeling Notes](docs/modeling.md)
+- [Model Validation](docs/model_validation.md)
 - [Limitations](docs/limitations.md)
 - [License Strategy](docs/license_strategy.md)
 - [Roadmap](docs/roadmap.md)

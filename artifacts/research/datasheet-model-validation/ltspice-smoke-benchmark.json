@@ -1,0 +1,68 @@
+{
+  "schema": "datasheet2spice-benchmark-v1",
+  "part_number": "DEMO_DIODE_650",
+  "models": [
+    "diode-basic",
+    "diode-abm-dynamic"
+  ],
+  "dialects": [
+    "ltspice"
+  ],
+  "total_elapsed_s": 1.1657,
+  "summary": {
+    "generated_files": 4,
+    "generated_decks": 2,
+    "simulated_decks": 2,
+    "failed_simulations": 0,
+    "max_elapsed_s": 0.5962,
+    "mean_elapsed_s": 0.5818
+  },
+  "records": [
+    {
+      "model": "diode-basic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_diode_ltspice.lib",
+      "path": "build\\quality-ltspice-smoke\\diode-basic\\ltspice\\DEMO_DIODE_650_diode_ltspice.lib",
+      "kind": "model",
+      "bytes": 426,
+      "status": "generated"
+    },
+    {
+      "model": "diode-basic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_ltspice.cir",
+      "path": "build\\quality-ltspice-smoke\\diode-basic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_ltspice.cir",
+      "kind": "deck",
+      "bytes": 301,
+      "status": "simulated",
+      "elapsed_s": 0.5674,
+      "returncode": 0,
+      "fatal": false,
+      "warnings": 0,
+      "log_path": "build\\quality-ltspice-smoke\\diode-basic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_ltspice.log"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_diode_abm_ltspice.lib",
+      "path": "build\\quality-ltspice-smoke\\diode-abm-dynamic\\ltspice\\DEMO_DIODE_650_diode_abm_ltspice.lib",
+      "kind": "model",
+      "bytes": 977,
+      "status": "generated"
+    },
+    {
+      "model": "diode-abm-dynamic",
+      "dialect": "ltspice",
+      "filename": "DEMO_DIODE_650_reverse_recovery_diode_abm_ltspice.cir",
+      "path": "build\\quality-ltspice-smoke\\diode-abm-dynamic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_ltspice.cir",
+      "kind": "deck",
+      "bytes": 305,
+      "status": "simulated",
+      "elapsed_s": 0.5962,
+      "returncode": 0,
+      "fatal": false,
+      "warnings": 0,
+      "log_path": "build\\quality-ltspice-smoke\\diode-abm-dynamic\\ltspice\\DEMO_DIODE_650_reverse_recovery_diode_abm_ltspice.log"
+    }
+  ]
+}
