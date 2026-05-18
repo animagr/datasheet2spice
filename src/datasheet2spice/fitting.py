@@ -29,7 +29,7 @@ def fit_project_parameters(project: DeviceProject) -> dict[str, Any]:
     """Fit model starter parameters from the currently extracted project data."""
 
     if project.get_path("component", "family", default="mosfet") == "diode":
-        results = [fit_diode_basic(project)]
+        results = [fit_diode_basic(project), fit_diode_abm_dynamic(project)]
     else:
         results = [fit_vdmos_static(project), fit_abm_basic(project)]
     project.data.setdefault("models", {}).setdefault("fits", {})
@@ -70,6 +70,49 @@ def fit_diode_basic(project: DeviceProject) -> FitResult:
         },
         metrics={"vf_reference_v": vf, "if_reference_a": if_ref, "qrr_nc": qrr, "trr_ns": trr},
         notes=["Closed-form starter fit from forward voltage, reference current, junction capacitance, and recovery data."],
+    )
+
+
+def fit_diode_abm_dynamic(project: DeviceProject) -> FitResult:
+    ratings = project.get_path("ratings", default={})
+    forward = project.get_path("static", "forward_voltage", default={})
+    capacitance = project.get_path("dynamic", "junction_capacitance", default={})
+    recovery = project.get_path("dynamic", "reverse_recovery", default={})
+
+    if_ref = _first_number(ratings, ("if_av_a", "if_cont_a", "if_a"), 10.0)
+    if_ref = max(_first_number(forward, ("if_a", "test_current_a"), if_ref), 1e-9)
+    cj0 = max(_first_number(capacitance, ("cj0_pf", "cj_pf", "ct_pf", "cjo_pf"), 50.0), 0.01)
+    trr = max(_first_number(recovery, ("trr_ns", "trr_typ_ns", "trr_max_ns"), 20.0), 0.001)
+    qrr = max(_first_number(recovery, ("qrr_nc", "qrr_typ_nc", "qrr_max_nc"), 0.0), 0.0)
+    irrm = _first_number(recovery, ("irrm_a", "irrm_typ_a", "irrm_max_a"), math.nan)
+    tau_ns = max(qrr / if_ref, trr * 0.35) if qrr > 0 else trr
+    if not math.isfinite(irrm) or irrm <= 0:
+        irrm = (2.0 * qrr / trr) if qrr > 0 else if_ref
+    rr_scale = _clamp(irrm / if_ref, 0.05, 10.0)
+
+    return FitResult(
+        model="diode-abm-dynamic",
+        parameters={
+            "CJO_pF": cj0,
+            "CJ_SCALE": 1.0,
+            "VJ": 0.8,
+            "M": 0.45,
+            "TAU_ns": max(tau_ns, 0.001),
+            "QRR_nC": qrr,
+            "TRR_ns": trr,
+            "IRRM_A": max(irrm, 0.0),
+            "RR_SCALE": rr_scale,
+        },
+        metrics={
+            "if_reference_a": if_ref,
+            "qrr_nc": qrr,
+            "trr_ns": trr,
+            "irrm_a": max(irrm, 0.0),
+        },
+        notes=[
+            "Dynamic ABM starter fit uses a nonlinear Cj(VR) current and a one-state reverse-recovery charge approximation.",
+            "Tune TAU_ns, RR_SCALE, and CJ_SCALE against datasheet or measured reverse-recovery waveforms before design use.",
+        ],
     )
 
 

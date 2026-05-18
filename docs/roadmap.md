@@ -13,7 +13,8 @@ layout: default
   remote API mode.
 - Component profile registry, starting with `mosfet.power` and `diode.power`.
 - CSV curve import for digitized capacitance plots.
-- Built-in `vdmos-static-fast`, `abm-basic`, and `diode-basic` emitters.
+- Built-in `vdmos-static-fast`, `abm-basic`, `diode-basic`, and
+  `diode-abm-dynamic` emitters.
 - LTspice, ngspice, common, PSpice, HSPICE, Xyce, and experimental QSPICE
   starter decks.
 - Plugin entry points for third-party extractors, validators, and emitters.
@@ -34,7 +35,7 @@ layout: default
 
 ## Later Model Families
 
-- Higher-fidelity power diode behavioral and electrothermal starters.
+- Lab-fitted power diode behavioral and electrothermal starters.
 - IGBT starter models.
 - BJT and signal diode model starters.
 - Guided tool panels for gate-drive, thermal, double-pulse, and parasitic

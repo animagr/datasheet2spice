@@ -42,7 +42,8 @@ http://127.0.0.1:8765
 3. Correct common parameters in the review form, or edit the project JSON
    directly for deeper changes.
 4. Run parameter fitting and model quality evaluation.
-5. Select `ABM Behavioral Model`, `VDMOS Compact Model`, or `Diode Compact Model`, and the target SPICE dialect.
+5. Select `ABM Behavioral Model`, `VDMOS Compact Model`, `Diode Compact Model`,
+   or `Diode Behavioral Model`, and the target SPICE dialect.
    The workbench can emit common SPICE, LTspice, ngspice, PSpice, HSPICE,
    Xyce, and experimental QSPICE bundles. See [SPICE Dialects](spice_dialects.md).
 6. Generate and download the ZIP model bundle.
@@ -76,7 +77,7 @@ Diode:
 - `VRRM`, `IF(AV)`, `IFSM`
 - `VF`, leakage `IR`
 - junction capacitance `Cj` or `Ct`
-- reverse-recovery `trr` and `Qrr`
+- reverse-recovery `trr`, `Qrr`, and `Irrm`
 - package parasitic starter values for anode and cathode leads
 
 Diode series datasheets are handled as a first-class extraction result. The
@@ -97,8 +98,9 @@ digitized curve for serious transient fitting.
 - Raster plot digitization renders a calibrated PDF plot crop and traces a
   single scanned curve with axis/grid suppression, coverage metrics, and a
   reviewable point list. See [Raster Plot Digitization](raster_digitization.md).
-- Parameter fitting computes VDMOS starter parameters and ABM recommendations
-  such as `KID`, `CGD_SCALE`, and `CGS_SCALE`.
+- Parameter fitting computes VDMOS starter parameters, MOSFET ABM
+  recommendations such as `KID`, `CGD_SCALE`, and `CGS_SCALE`, and diode ABM
+  recovery parameters such as `TAU_ns` and `RR_SCALE`.
 - Model evaluation scores static coverage, dynamic coverage, capacitance
   consistency, fit consistency, and schema validity. The score is a review aid,
   not a replacement for waveform validation.

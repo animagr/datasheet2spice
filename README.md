@@ -128,6 +128,14 @@ datasheet or lab waveforms.
 - Uses forward voltage, reference current, reverse voltage, junction capacitance,
   leakage, recovery data, and package parasitics when available.
 
+`Diode ABM dynamic`
+
+- Portable behavioral diode starter for transient recovery studies.
+- Adds a nonlinear `Cj(VR)` current and a one-state reverse-recovery charge
+  approximation around the same DC diode core.
+- Useful when `trr`, `Qrr`, and `Irrm` must influence switching waveforms
+  before a lab-fitted electrothermal model is available.
+
 ## License
 
 The core package is Apache-2.0. Optional integrations may have stronger licenses. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

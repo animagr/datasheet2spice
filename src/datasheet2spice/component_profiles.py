@@ -48,7 +48,7 @@ class PowerDiodeProfile:
     label = "Power Diode / Schottky / SiC Diode"
     family = "diode"
     component_types = ("power_diode", "fast_recovery_diode", "schottky_diode", "sic_schottky_diode")
-    supported_models = ("diode-basic",)
+    supported_models = ("diode-basic", "diode-abm-dynamic")
     browser_scope = "PDF text extraction, project review, and starter diode model export."
     local_scope = "PDF screenshots, table recognition, curve digitization, fitting, and quality scoring."
 

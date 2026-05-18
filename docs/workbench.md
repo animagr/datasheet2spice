@@ -23,7 +23,7 @@ raster plot digitization, and server-side PyMuPDF extraction.
 - Heuristic MOSFET and diode parameter extraction.
 - Diode series-part detection, explicit part selection, and all-variant ZIP export.
 - Editable `DeviceProject` JSON.
-- ABM, VDMOS, and diode starter netlist generation.
+- ABM, VDMOS, diode compact, and diode behavioral starter netlist generation.
 - Dialects: common, LTspice, ngspice, PSpice, HSPICE, Xyce, and experimental QSPICE.
 - ZIP download through JSZip.
 

@@ -59,6 +59,25 @@ The generated diode model is intentionally compact and portable. It is suitable
 for early topology checks and first transient comparisons, then should be fitted
 against datasheet `VF(IF)`, `Cj(VR)`, thermal, and recovery curves.
 
+## Diode ABM Dynamic
+
+The `diode-abm-dynamic` emitter keeps the portable two-terminal package shell
+but adds behavioral transient terms:
+
+- a smoothed nonlinear `Cj(VR)` current source using `CJO`, `VJ`, `M`, and
+  `CJ_SCALE`,
+- a hidden `qrr_state` capacitor that stores forward-conduction recovery charge,
+- a smoothed reverse-bias gate that releases the stored charge as recovery
+  current using `TAU` and `RR_SCALE`,
+- the same DC diode card, leakage path, and package parasitics used by the
+  compact diode starter.
+
+The starter fit maps `CJO_pF`, `TRR_ns`, `QRR_nC`, and `IRRM_A` into initial
+`TAU_ns`, `RR_SCALE`, and `CJ_SCALE` values. This can produce more realistic
+reverse-recovery transients than a plain diode `TT` card, but it is still a
+reviewable approximation. Tune it against datasheet recovery test conditions or
+measured waveforms before relying on switching-loss predictions.
+
 ## Model Level Naming
 
 This project avoids `L1/L2/L3` names because they conflict with:

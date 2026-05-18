@@ -50,6 +50,7 @@ class ContractTests(unittest.TestCase):
         self.assertIn("diode.power", module_ids)
         self.assertIn("abm-basic", module_ids)
         self.assertIn("diode-basic", module_ids)
+        self.assertIn("diode-abm-dynamic", module_ids)
         self.assertIn("vdmos-static-fast", module_ids)
 
     def test_module_catalog_is_json_ready(self):

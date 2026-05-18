@@ -22,6 +22,7 @@ class SchemaEmitterTests(unittest.TestCase):
     def test_emitters_registered(self):
         self.assertIn("abm-basic", registry.emitters)
         self.assertIn("diode-basic", registry.emitters)
+        self.assertIn("diode-abm-dynamic", registry.emitters)
         self.assertIn("vdmos-static-fast", registry.emitters)
         self.assertIn("capacitance-csv", registry.extractors)
         self.assertIn("schema", registry.validators)

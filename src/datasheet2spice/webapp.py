@@ -513,6 +513,7 @@ INDEX_HTML = r"""<!doctype html>
           <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="abm-basic" checked /> ABM Behavioral Model</label>
           <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS Compact Model</label>
           <label data-model-profile="diode.power"><input type="checkbox" name="model" value="diode-basic" /> Diode Compact Model</label>
+          <label data-model-profile="diode.power"><input type="checkbox" name="model" value="diode-abm-dynamic" /> Diode Behavioral Model</label>
         </div>
         <div>
           <label for="dialect">SPICE Dialect</label>
@@ -808,6 +809,7 @@ INDEX_HTML = r"""<!doctype html>
         ["dynamic.junction_capacitance.cj0_pf", "Cj0 (pF)"],
         ["dynamic.reverse_recovery.trr_ns", "trr (ns)"],
         ["dynamic.reverse_recovery.qrr_nc", "Qrr (nC)"],
+        ["dynamic.reverse_recovery.irrm_a", "Irrm (A)"],
         ["thermal.rth_jc_c_per_w", "RthJC (C/W)"]
       ] : [
         ["ratings.vdss_v", "VDSS (V)"],

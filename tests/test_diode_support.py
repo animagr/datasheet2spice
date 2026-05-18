@@ -26,7 +26,7 @@ class DiodeSupportTests(unittest.TestCase):
         }
         self.project.data["dynamic"] = {
             "junction_capacitance": {"cj0_pf": 120},
-            "reverse_recovery": {"trr_ns": 35, "qrr_nc": 150},
+            "reverse_recovery": {"trr_ns": 35, "qrr_nc": 150, "irrm_a": 8},
         }
         self.project.data["parasitics"] = {"la_nh": 1.2, "lk_nh": 1.0, "ra_ohm": 0.002, "rk_ohm": 0.002}
 
@@ -35,6 +35,7 @@ class DiodeSupportTests(unittest.TestCase):
         profile = registry.component_profiles["diode.power"].describe()
         self.assertEqual(profile["family"], "diode")
         self.assertIn("diode-basic", profile["supported_models"])
+        self.assertIn("diode-abm-dynamic", profile["supported_models"])
 
     def test_diode_emitter_generates_portable_model(self):
         for dialect in ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"]:
@@ -46,19 +47,47 @@ class DiodeSupportTests(unittest.TestCase):
                 self.assertIn("BV=650", joined)
                 self.assertTrue(any("reverse_recovery_diode" in name for name in files))
 
+    def test_diode_abm_emitter_generates_dynamic_model(self):
+        expectations = {
+            "common": "VALUE =",
+            "ltspice": "Bcj",
+            "ngspice": "Bcj",
+            "pspice": "VALUE =",
+            "hspice": "CUR='",
+            "xyce": "Bcj",
+            "qspice": "Bcj",
+        }
+        for dialect, marker in expectations.items():
+            with self.subTest(dialect=dialect):
+                files = registry.emitters["diode-abm-dynamic"].emit(self.project, dialect)
+                joined = "\n".join(files.values())
+                self.assertIn(".subckt DEMO_DIODE_650 A K", joined)
+                self.assertIn("qrr_state", joined)
+                self.assertIn("DDT(V(a_sense,k_int))", joined)
+                self.assertIn("I(Vsense)", joined)
+                self.assertIn("RR_SCALE", joined)
+                self.assertIn("CJO=120p", joined)
+                self.assertIn(marker, joined)
+                self.assertTrue(any("reverse_recovery_diode_abm" in name for name in files))
+
     def test_diode_bundle_skips_mosfet_capacitance_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = generate_model_bundle(self.project, tmp, ["diode-basic"], ["common"])
+            result = generate_model_bundle(self.project, tmp, ["diode-basic", "diode-abm-dynamic"], ["common"])
         self.assertTrue(result["ok"], result.get("errors"))
         names = {item["name"] for item in result["files"]}
         self.assertIn("DEMO_DIODE_650_diode.lib", names)
+        self.assertIn("DEMO_DIODE_650_diode_abm.lib", names)
         self.assertIn("DEMO_DIODE_650_models.zip", names)
+        fit_models = {item["model"] for item in result["fit"]}
+        self.assertIn("diode-basic", fit_models)
+        self.assertIn("diode-abm-dynamic", fit_models)
 
     def test_module_catalog_lists_diode_modules(self):
         catalog = module_catalog(include_entrypoints=False)
         module_ids = {module["id"] for module in catalog["modules"]}
         self.assertIn("diode.power", module_ids)
         self.assertIn("diode-basic", module_ids)
+        self.assertIn("diode-abm-dynamic", module_ids)
 
     def test_diode_text_extractor_builds_project(self):
         result = extract_diode_project_from_text(
@@ -172,8 +201,8 @@ class DiodeSupportTests(unittest.TestCase):
 
     def test_diode_example_loads_and_emits(self):
         project = DeviceProject.load(ROOT / "examples" / "demo_sic_diode" / "device.json")
-        files = registry.emitters["diode-basic"].emit(project, "common")
-        self.assertIn("DEMO_DIODE_650_diode.lib", files)
+        files = registry.emitters["diode-abm-dynamic"].emit(project, "common")
+        self.assertIn("DEMO_DIODE_650_diode_abm.lib", files)
 
 
 if __name__ == "__main__":

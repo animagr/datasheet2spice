@@ -130,6 +130,7 @@ Browser modules are registered with `WorkbenchModuleRegistry` from
 - `diode.power`: component profile.
 - `abm-basic`: ABM starter model emitter.
 - `diode-basic`: portable diode compact model emitter.
+- `diode-abm-dynamic`: portable diode behavioral recovery model emitter.
 - `vdmos-static-fast`: VDMOS starter model emitter.
 - `capacitance-csv`: CSV capacitance curve extractor.
 - `schema`: project schema validator.

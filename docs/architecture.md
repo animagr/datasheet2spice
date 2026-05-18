@@ -92,7 +92,7 @@ Built-in and third-party packages can extend these surfaces:
 
 The current built-in component profiles are `mosfet.power` and `diode.power`.
 The current built-in emitters are `vdmos-static-fast`, `abm-basic`, and
-`diode-basic`.
+`diode-basic`, and `diode-abm-dynamic`.
 
 ## Design Rules
 

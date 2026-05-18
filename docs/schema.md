@@ -67,15 +67,15 @@ starter models when these fields are present:
 The values may be datasheet typical values, conservative assumptions, or lab
 fits, but each source should be recorded in `provenance`.
 
-The built-in `diode-basic` emitter uses the `diode.power` profile and these
-fields when available:
+The built-in `diode-basic` and `diode-abm-dynamic` emitters use the
+`diode.power` profile and these fields when available:
 
 - `ratings.vrrm_v`: repetitive peak reverse-voltage rating in volts.
 - `ratings.if_av_a`, `ratings.ifsm_a`: average and surge forward current.
 - `static.forward_voltage`: `vf_v` and reference `if_a`.
 - `static.leakage.ir_ua`: reverse leakage current.
 - `dynamic.junction_capacitance.cj0_pf`: starter junction capacitance.
-- `dynamic.reverse_recovery`: `trr_ns` and `qrr_nc`.
+- `dynamic.reverse_recovery`: `trr_ns`, `qrr_nc`, and optional `irrm_a`.
 - `parasitics`: `la_nh`, `lk_nh`, `ra_ohm`, and `rk_ohm`.
 
 ## Provenance
