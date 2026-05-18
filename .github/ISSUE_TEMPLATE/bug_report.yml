@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible bug in extraction, model generation, or the workbench.
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include commands, browser URL, project JSON, or a minimal fixture.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v1.0.0 or commit SHA
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - PDF extraction
+        - Curve digitization
+        - Model emitter
+        - SPICE dialect
+        - Browser workbench
+        - Local backend
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs. Do not attach confidential datasheets or proprietary model files.

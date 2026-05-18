@@ -1,25 +1,72 @@
 # datasheet2spice
 
-`datasheet2spice` is a traceable, semi-automatic toolkit for turning electronic component datasheet information into SPICE model starters. The first supported component families are power MOSFET / SiC MOSFET and power diode / Schottky / SiC diode.
+[![tests](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/tests.yml/badge.svg)](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/tests.yml)
+[![pages](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/pages.yml/badge.svg)](https://github.com/lisiqi1983/datasheet2spice/actions/workflows/pages.yml)
+[![license: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-It is designed for engineering work where every number must be auditable. It does **not** claim that a generated model is a vendor-qualified model. Generated models are starting points for simulation and lab fitting.
+`datasheet2spice` turns reviewable datasheet evidence into starter SPICE models.
+It is built for power electronics engineers who need transparent MOSFET and
+diode models, not black-box netlists whose assumptions are impossible to audit.
 
-## What It Does
+The project combines PDF extraction, editable device JSON, model emitters,
+SPICE dialect support, and validation benchmarks so every generated parameter
+can be checked against a datasheet, vendor model, or lab waveform.
 
-- Stores extracted datasheet values in a structured JSON schema with provenance.
-- Emits fast `VDMOS` compact model starters.
-- Emits simple ABM behavioral model starters for common SPICE, LTspice,
-  ngspice, PSpice, HSPICE, Xyce, and experimental QSPICE styles.
-- Emits portable power-diode `.model D` starters with package parasitic subcircuits.
-- Detects multi-part diode series datasheets and lets users choose one part or export all detected variants.
-- Generates double-pulse starter decks.
-- Provides plugin interfaces and Python entry points for PDF extraction, curve import, emitters, and validators.
-- Separates the lightweight GitHub Pages workbench from the high-fidelity local backend through shared service and runtime contracts.
-- Keeps AGPL/GPL tools optional instead of mandatory runtime dependencies.
+[Try the hosted workbench](https://lisiqi1983.github.io/datasheet2spice/workbench_app.html) |
+[Read the docs](https://lisiqi1983.github.io/datasheet2spice/) |
+[Model validation](https://lisiqi1983.github.io/datasheet2spice/model_validation.html) |
+[Start contributing](CONTRIBUTING.md)
+
+![datasheet2spice workflow](docs/assets/diagrams/readme-workflow.svg)
+
+## Why It Exists
+
+Power device models are often locked in vendor libraries, tied to one simulator,
+or missing for a specific device revision. `datasheet2spice` takes a different
+route:
+
+- extract auditable values from datasheets,
+- keep source evidence and confidence near every parameter,
+- generate simple, reviewable model starters,
+- support several SPICE dialects,
+- benchmark convergence, speed, and accuracy before claiming model quality.
+
+Generated models are starting points for simulation and lab fitting. They are
+not vendor-qualified or safety-qualified models.
+
+## Current Capabilities
+
+- Component profiles for power MOSFET / SiC MOSFET and power diode / Schottky /
+  SiC diode.
+- Browser workbench for PDF text extraction, editable project JSON, diode
+  series-part selection, and starter SPICE export.
+- Local Python workbench with table recognition, screenshot evidence,
+  vector/raster curve digitization, fitting, and model evaluation.
+- Model emitters for `vdmos-static-fast`, `abm-basic`, `diode-basic`, and
+  `diode-abm-dynamic`.
+- Dialects: common SPICE, LTspice, ngspice, PSpice, HSPICE, Xyce, and
+  experimental QSPICE.
+- Validation commands for extraction golden cases and model benchmark evidence.
+- Plugin interfaces for new extractors, fitters, emitters, validators, and UI
+  tool panels.
+
+## Validation Status
+
+| Area | Current status |
+| --- | --- |
+| Demo diode extraction golden case | passing |
+| All-dialect diode model generation | passing, 28 generated files |
+| LTspice diode smoke convergence | passing, 2 decks, 0 warnings |
+| Public datasheet regression manifest | initial ST, Diodes Inc, Toshiba, Wolfspeed candidates |
+| Vendor-model waveform comparison | planned |
+| ngspice/Xyce automated simulation benchmarks | planned |
+
+See [Model Validation](docs/model_validation.md) and
+[validation assets](validation/README.md) for the quality workflow.
 
 ## Quick Start
 
-Python 3.10+ is required. From a fresh clone:
+Python 3.10+ is required.
 
 ```powershell
 python -m pip install -e .
@@ -29,66 +76,22 @@ Generate demo models:
 
 ```powershell
 datasheet2spice emit examples/demo_sic_mosfet/device.json --out build/demo --all
-datasheet2spice emit examples/demo_sic_diode/device.json --out build/demo_diode --model diode-basic --dialect all
+datasheet2spice emit examples/demo_sic_diode/device.json --out build/demo_diode --model diode-abm-dynamic --dialect all
 ```
 
-Validate schema and print a short model report:
-
-```powershell
-datasheet2spice validate examples/demo_sic_mosfet/device.json
-datasheet2spice report examples/demo_sic_mosfet/device.json
-```
-
-Run the local browser workbench for PDF upload and model generation:
+Run the local browser workbench:
 
 ```powershell
 python -m pip install -e .[pdf]
 datasheet2spice serve --host 127.0.0.1 --port 8765
 ```
 
-The workbench includes PDF table recognition, per-field screenshot evidence
-previews, vector capacitance-curve digitization, calibrated raster plot
-digitization, parameter review forms, starter fit recommendations, and a model
-quality score.
-
-Open the hosted browser-only workbench:
-
-[https://lisiqi1983.github.io/datasheet2spice/workbench_app.html](https://lisiqi1983.github.io/datasheet2spice/workbench_app.html)
-
-The hosted workbench runs fully in the browser. It supports PDF text extraction,
-project JSON review, diode series-part selection, and starter SPICE export. The
-local Python workbench remains the higher-fidelity path for screenshot evidence
-and calibrated raster plot digitization.
-
-Architecture direction:
-
-- GitHub Pages stays lightweight and demonstrates the core workflow without installation.
-- The local Python backend provides high-fidelity extraction, evidence rendering, digitization, fitting, and optional simulator checks.
-- Component profiles and plugins are the extension points for future device families and small engineering tools.
-- Browser frontend source lives in `web/`; deployable GitHub Pages copies live
-  in `docs/` and are synchronized with `python tools/sync_web_frontend.py`.
-- Extension modules expose `datasheet2spice-module-v1` manifests; backend
-  adapters expose the shared `datasheet2spice-api-v1` operation contract.
-- Local datasheets and generated simulation artifacts should stay under
-  `tmp/` or `build/`; see the development workflow before committing.
-
-Ten-minute path for a new device:
+Run quality gates:
 
 ```powershell
-datasheet2spice init MY_PART path\to\datasheet.pdf --vendor VendorName --out my_part.device.json
-datasheet2spice import-capacitance-csv my_part.device.json examples\demo_sic_mosfet\capacitance.csv
-datasheet2spice validate my_part.device.json
-datasheet2spice emit my_part.device.json --out build/my_part --all --dialect all
-datasheet2spice report my_part.device.json --out build/my_part/report.md
+datasheet2spice score-case examples/demo_sic_diode/device.json validation/golden/demo_sic_diode.case.json
+datasheet2spice benchmark-model examples/demo_sic_diode/device.json --out build/bench-diode --model diode-basic --model diode-abm-dynamic --dialect all
 ```
-
-Import capacitance curves digitized from a datasheet plot:
-
-```powershell
-datasheet2spice import-capacitance-csv my_part.device.json caps.csv
-```
-
-The CSV columns are `vds_v,ciss_pf,coss_pf,crss_pf`.
 
 Run tests:
 
@@ -96,56 +99,44 @@ Run tests:
 python -m unittest discover -s tests -v
 ```
 
-Run extraction and model benchmark quality gates:
-
-```powershell
-datasheet2spice score-case examples/demo_sic_diode/device.json validation/golden/demo_sic_diode.case.json
-datasheet2spice benchmark-model examples/demo_sic_diode/device.json --out build/bench-diode --model diode-basic --model diode-abm-dynamic --dialect all
-```
-
-Create a new project file:
-
-```powershell
-datasheet2spice init MY_PART path\to\datasheet.pdf --out my_part.device.json
-```
-
-In v1.0 the datasheet path is recorded for provenance; automatic PDF extraction
-is experimental and exposed through optional plugins. The reliable workflow is:
-extract table values, digitize curves to CSV, validate, emit, then fit against
-datasheet or lab waveforms.
-
 ## Model Families
 
 `VDMOS static-fast`
 
-- Fast compact model baseline.
-- Good for early power-stage sweeps.
-- Datasheet-driven starter parameters: `Vto`, `Kp`, `Rd/Rs`, `Rg`, `Cgs`, `Cgdmin/max`, `Cjo`, diode terms.
+- Fast compact model baseline for early power-stage sweeps.
+- Starter parameters include `Vto`, `Kp`, `Rd/Rs`, `Rg`, capacitances, and body
+  diode terms.
 
 `ABM dynamic-basic`
 
-- Flexible behavioral starter.
-- Uses smooth `Idsat(Vgs)` plus `RDS(on)` and nonlinear capacitance tables.
-- Supports common ABM, LTspice, ngspice, PSpice, HSPICE, Xyce, and
-  experimental QSPICE emitter dialects.
+- Flexible behavioral MOSFET starter.
+- Uses smooth channel current plus nonlinear capacitance tables.
+- Supports the major built-in dialects.
 
 `Diode basic`
 
 - Portable two-terminal diode starter using native SPICE `D` model cards.
-- Uses forward voltage, reference current, reverse voltage, junction capacitance,
+- Uses forward voltage, reference current, reverse rating, junction capacitance,
   leakage, recovery data, and package parasitics when available.
 
 `Diode ABM dynamic`
 
 - Portable behavioral diode starter for transient recovery studies.
-- Adds a nonlinear `Cj(VR)` current and a one-state reverse-recovery charge
+- Adds nonlinear `Cj(VR)` current and a one-state reverse-recovery charge
   approximation around the same DC diode core.
-- Useful when `trr`, `Qrr`, and `Irrm` must influence switching waveforms
-  before a lab-fitted electrothermal model is available.
 
-## License
+## Good First Contributions
 
-The core package is Apache-2.0. Optional integrations may have stronger licenses. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+The easiest useful contribution is a small, public validation case:
+
+- add a public datasheet manifest entry,
+- add expected table values and tolerances,
+- test one generated model in LTspice or ngspice,
+- report an extraction failure with a screenshot and source URL,
+- improve docs for a simulator or device family you use.
+
+See the issue labels `good first issue` and `help wanted`, or open a Discussion
+with the datasheet or model family you want to support.
 
 ## Documentation
 
@@ -166,9 +157,16 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 - [License Strategy](docs/license_strategy.md)
 - [Roadmap](docs/roadmap.md)
 
+## License
+
+The core package is Apache-2.0. Optional integrations may have stronger
+licenses. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
 ## Important Caveats
 
 - Do not redistribute confidential datasheets without permission.
-- Do not treat generated models as safety-qualified vendor models.
-- Always validate switching behavior against datasheet test conditions or measured double-pulse waveforms.
-- High-order BSIM/HiSIM extraction generally requires process/device characterization data beyond ordinary datasheets.
+- Do not treat generated models as vendor-qualified or safety-qualified models.
+- Always validate switching behavior against datasheet test conditions or
+  measured double-pulse waveforms.
+- High-order BSIM/HiSIM extraction generally requires process/device
+  characterization data beyond ordinary datasheets.

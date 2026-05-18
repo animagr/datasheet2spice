@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a new device family, extractor, emitter, fitter, simulator adapter, or workflow.
+title: "[feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What engineering workflow is blocked today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: What should datasheet2spice do?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New component profile
+        - PDF/table/OCR extraction
+        - Curve digitization
+        - Model emitter
+        - Parameter fitting
+        - Simulator benchmark
+        - Browser workbench
+        - Plugin API
+        - Documentation
+        - Other
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Example datasheets, models, or references
+      description: Public links are best.

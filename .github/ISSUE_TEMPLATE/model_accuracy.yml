@@ -1,0 +1,48 @@
+name: Model accuracy or convergence report
+description: Report model error, convergence failure, or simulator performance data.
+title: "[model]: "
+labels: ["model-accuracy"]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Model emitter
+      placeholder: abm-basic, vdmos-static-fast, diode-basic, diode-abm-dynamic
+    validations:
+      required: true
+  - type: input
+    id: simulator
+    attributes:
+      label: Simulator and version
+      placeholder: LTspice 24.x, ngspice 43, Xyce...
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device or project JSON
+      placeholder: Public project JSON path or part number
+    validations:
+      required: true
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Observed metrics
+      description: Include VF, Cj, Qrr, trr, Irrm, Eon/Eoff, elapsed time, warnings, or fatal log markers.
+      value: |
+        - Metric:
+        - Expected:
+        - Actual:
+        - Error:
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: Baseline or reference
+      description: Datasheet curve, vendor SPICE model, lab waveform, or hand calculation.
+  - type: textarea
+    id: files
+    attributes:
+      label: Reproduction files
+      description: Link to public files or paste a minimal deck. Do not attach confidential or restricted vendor files.

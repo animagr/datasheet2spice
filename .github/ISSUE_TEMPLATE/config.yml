@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and design discussion
+    url: https://github.com/lisiqi1983/datasheet2spice/discussions
+    about: Use Discussions for open-ended modeling, simulator, and roadmap topics.

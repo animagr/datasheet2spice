@@ -1,0 +1,49 @@
+name: Datasheet support request
+description: Request extraction/model support for a public datasheet.
+title: "[datasheet]: "
+labels: ["datasheet-case", "help wanted"]
+body:
+  - type: input
+    id: vendor
+    attributes:
+      label: Vendor
+      placeholder: STMicroelectronics, Vishay, Infineon, Diodes Inc, Toshiba, Wolfspeed...
+    validations:
+      required: true
+  - type: input
+    id: part
+    attributes:
+      label: Part number or series
+      placeholder: STPST5H100, B5819WS, C3D06060...
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Public datasheet URL
+      description: Link to the vendor page or public datasheet page. Avoid uploading PDFs unless redistribution is allowed.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component family
+      options:
+        - Power MOSFET / SiC MOSFET
+        - Power diode / Schottky / SiC diode
+        - IGBT
+        - BJT
+        - TVS / Zener
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: challenge
+    attributes:
+      label: What makes this datasheet interesting?
+      description: Series table, scanned PDF, unusual units, vendor model available, important curves, etc.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Known expected values
+      description: Add any values you already checked, with units and test conditions.

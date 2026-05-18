@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: datasheet2spice
+message: "If datasheet2spice helps your research or engineering workflow, please cite the project repository."
+type: software
+authors:
+  - name: datasheet2spice contributors
+repository-code: "https://github.com/lisiqi1983/datasheet2spice"
+url: "https://lisiqi1983.github.io/datasheet2spice/"
+license: Apache-2.0
+keywords:
+  - SPICE
+  - power electronics
+  - MOSFET
+  - diode
+  - EDA
+  - datasheet extraction
+  - circuit simulation
