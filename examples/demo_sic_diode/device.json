@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "component": {
+    "family": "diode",
+    "profile": "diode.power"
+  },
+  "device": {
+    "part_number": "DEMO_DIODE_650",
+    "vendor": "Demo",
+    "type": "sic_schottky_diode",
+    "package": "TO-247",
+    "datasheet": "browser-demo"
+  },
+  "ratings": {
+    "vrrm_v": 650,
+    "if_av_a": 20,
+    "ifsm_a": 180
+  },
+  "static": {
+    "forward_voltage": {
+      "vf_v": 1.7,
+      "if_a": 20
+    },
+    "leakage": {
+      "ir_ua": 50
+    }
+  },
+  "dynamic": {
+    "junction_capacitance": {
+      "cj0_pf": 120
+    },
+    "reverse_recovery": {
+      "trr_ns": 12,
+      "qrr_nc": 0
+    }
+  },
+  "thermal": {
+    "rth_jc_c_per_w": 1.2
+  },
+  "parasitics": {
+    "la_nh": 1.2,
+    "lk_nh": 1,
+    "ra_ohm": 0.002,
+    "rk_ohm": 0.002
+  },
+  "models": {},
+  "provenance": [
+    {
+      "source": "demo",
+      "kind": "example",
+      "note": "Synthetic diode example for testing the diode-basic emitter."
+    }
+  ]
+}

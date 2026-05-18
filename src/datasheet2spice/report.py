@@ -27,9 +27,9 @@ def render_report(project: DeviceProject) -> str:
     for key, value in static.items():
         lines.append(f"- `{key}`: {value}")
     lines += ["", "## Dynamic Parameters", ""]
-    for key in ["gate_charge", "switching", "body_diode", "channel_fit"]:
-        if key in dynamic:
-            lines.append(f"- `{key}`: {dynamic[key]}")
+    for key, value in dynamic.items():
+        if key != "capacitance":
+            lines.append(f"- `{key}`: {value}")
     cap = dynamic.get("capacitance", {})
     if cap:
         n = len(cap.get("vds_v", []))

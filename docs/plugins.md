@@ -4,7 +4,26 @@ layout: default
 
 # Plugin Interfaces
 
-The built-in plugin registry supports emitters, extractors, and validators.
+The plugin registry supports component profiles, emitters, extractors, fitters,
+tool panels, and validators.
+
+Each registered plugin is also represented by a `datasheet2spice-module-v1`
+manifest. See [Interface Contracts](interface_contracts.md) for the manifest
+shape and backend operation contract.
+
+## Component Profiles
+
+Component profiles define what a device family expects from extraction, fitting,
+and model generation.
+
+The first built-in profile is:
+
+- `mosfet.power`
+
+Future profiles should add their own expected fields, recommended model
+families, validators, and review tools without changing the core schema.
+
+## Emitters
 
 ```python
 from datasheet2spice.plugins import emitter
@@ -20,15 +39,29 @@ Built-in emitters:
 - `vdmos-static-fast`
 - `abm-basic`
 
+## Extractors
+
 Built-in extractors:
 
 - `capacitance-csv`
+
+## Validators
 
 Built-in validators:
 
 - `schema`
 
 Optional extractors can live under `datasheet2spice.extractors` or in external packages.
+
+## Fitters and Tool Panels
+
+Fitters are intended for parameter extraction from curves, measured waveforms,
+or reviewed project data. Tool panels are intended for frontend extensions such
+as gate-resistor calculators, thermal RC fitters, double-pulse setup helpers,
+and curve review utilities.
+
+These interfaces are registered today so downstream packages can target them,
+even though the built-in v1 package only ships MOSFET starter fitting helpers.
 
 ## Third-Party Package Loading
 

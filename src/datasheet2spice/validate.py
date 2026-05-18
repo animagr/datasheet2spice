@@ -16,6 +16,9 @@ def validate_project(project: DeviceProject) -> list[str]:
         project.validate()
     except SchemaError as exc:
         errors.append(str(exc))
+    if project.get_path("component", "family", default="mosfet") == "diode":
+        _validate_diode_project(project, errors)
+        return errors
     caps = project.get_path("dynamic", "capacitance", default=None)
     if not caps:
         errors.append("dynamic.capacitance is required for built-in VDMOS and ABM emitters")
@@ -29,6 +32,32 @@ def validate_project(project: DeviceProject) -> list[str]:
     if vdss is not None and _as_float(vdss) <= 0:
         errors.append("ratings.vdss_v must be positive")
     return errors
+
+
+def _validate_diode_project(project: DeviceProject, errors: list[str]) -> None:
+    vrrm = project.get_path("ratings", "vrrm_v", default=project.get_path("ratings", "vr_v", default=None))
+    if vrrm is None:
+        errors.append("ratings.vrrm_v is recommended for diode-basic emitter")
+    elif _as_float(vrrm) <= 0:
+        errors.append("ratings.vrrm_v must be positive")
+
+    forward = project.get_path("static", "forward_voltage", default=None)
+    if not isinstance(forward, dict) or not forward:
+        errors.append("static.forward_voltage is recommended for diode-basic emitter")
+    else:
+        vf = forward.get("vf_v", forward.get("typ_v", forward.get("max_v")))
+        if vf is not None and _as_float(vf) <= 0:
+            errors.append("static.forward_voltage.vf_v must be positive")
+        if forward.get("if_a") is not None and _as_float(forward["if_a"]) <= 0:
+            errors.append("static.forward_voltage.if_a must be positive")
+
+    capacitance = project.get_path("dynamic", "junction_capacitance", default=None)
+    if not isinstance(capacitance, dict) or not capacitance:
+        errors.append("dynamic.junction_capacitance is recommended for diode-basic emitter")
+    else:
+        cjo = capacitance.get("cj0_pf", capacitance.get("cj_pf", capacitance.get("ct_pf")))
+        if cjo is not None and _as_float(cjo) <= 0:
+            errors.append("dynamic.junction_capacitance.cj0_pf must be positive")
 
 
 def _validate_capacitance(caps: dict[str, Any], errors: list[str]) -> None:

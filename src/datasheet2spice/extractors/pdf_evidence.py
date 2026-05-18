@@ -118,6 +118,15 @@ FIELD_SEARCH_TERMS = {
     "dynamic.body_diode.qrr_nc": ["Reverse recovery charge", "Qrr"],
     "dynamic.body_diode.irrm_a": ["Peak reverse recovery current", "Irrm"],
     "dynamic.body_diode.vsd_25c_typ_v": ["Forward voltage", "VSD"],
+    "ratings.vrrm_v": ["VRRM", "Repetitive peak reverse voltage", "Reverse voltage"],
+    "ratings.if_av_a": ["IF(AV)", "Average forward current"],
+    "ratings.ifsm_a": ["IFSM", "Surge forward current"],
+    "static.forward_voltage.vf_v": ["VF", "Forward voltage"],
+    "static.leakage.ir_ua": ["IR", "Reverse current", "Leakage current"],
+    "dynamic.junction_capacitance.cj0_pf": ["Cj", "Ct", "Junction capacitance", "Total capacitance"],
+    "dynamic.reverse_recovery.trr_ns": ["trr", "Reverse recovery time"],
+    "dynamic.reverse_recovery.qrr_nc": ["Qrr", "Reverse recovery charge"],
+    "thermal.rth_jc_c_per_w": ["Rth(j-c)", "Thermal resistance"],
 }
 
 

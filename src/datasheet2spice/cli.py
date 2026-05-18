@@ -117,11 +117,20 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 def cmd_plugins(args: argparse.Namespace) -> int:
     loaded = load_plugins()
+    print("component profiles:")
+    for name in sorted(registry.component_profiles):
+        print(f"  - {name}")
     print("emitters:")
     for name in sorted(registry.emitters):
         print(f"  - {name}")
     print("extractors:")
     for name in sorted(registry.extractors):
+        print(f"  - {name}")
+    print("fitters:")
+    for name in sorted(registry.fitters):
+        print(f"  - {name}")
+    print("tool panels:")
+    for name in sorted(registry.tool_panels):
         print(f"  - {name}")
     print("validators:")
     for name in sorted(registry.validators):

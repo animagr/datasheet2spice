@@ -10,6 +10,8 @@ from .validate import validate_project
 
 
 def evaluate_project_model(project: DeviceProject) -> dict[str, Any]:
+    if project.get_path("component", "family", default="mosfet") == "diode":
+        return _evaluate_diode_project(project)
     errors = validate_project(project)
     static_score = _presence_score(
         project,
@@ -60,6 +62,46 @@ def evaluate_project_model(project: DeviceProject) -> dict[str, Any]:
         },
         "errors": errors,
         "notes": cap_notes + fit_notes,
+        "grade": _grade(overall),
+    }
+
+
+def _evaluate_diode_project(project: DeviceProject) -> dict[str, Any]:
+    errors = validate_project(project)
+    static_score = _presence_score(
+        project,
+        [
+            ("ratings", "vrrm_v"),
+            ("ratings", "if_av_a"),
+            ("static", "forward_voltage"),
+            ("static", "leakage"),
+        ],
+    )
+    dynamic_score = _presence_score(
+        project,
+        [
+            ("dynamic", "junction_capacitance"),
+            ("dynamic", "reverse_recovery"),
+            ("parasitics", "la_nh"),
+            ("parasitics", "lk_nh"),
+        ],
+    )
+    validation_score = 0.0 if errors else 1.0
+    notes: list[str] = []
+    if project.get_path("dynamic", "junction_capacitance", default=None) in (None, {}, []):
+        notes.append("No diode junction-capacitance value or curve is available.")
+    if project.get_path("dynamic", "reverse_recovery", default=None) in (None, {}, []):
+        notes.append("No reverse-recovery data is available; Schottky devices may still be acceptable.")
+    overall = round(100 * (0.45 * static_score + 0.35 * dynamic_score + 0.2 * validation_score))
+    return {
+        "overall_score": overall,
+        "scores": {
+            "static_coverage": round(static_score, 3),
+            "dynamic_coverage": round(dynamic_score, 3),
+            "schema_validity": round(validation_score, 3),
+        },
+        "errors": errors,
+        "notes": notes,
         "grade": _grade(overall),
     }
 

@@ -1,17 +1,27 @@
+# Python and packaging
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-build/
-dist/
 *.egg-info/
+dist/
+
+# Local generated workspaces
+build/
+tmp/
+artifacts/local/
+
+# Simulator and generated model outputs
 *.raw
 *.op.raw
 *.log
-tmp/
+*_models.zip
 S4661_*
 s4661_params.json
+
+# Local datasheets and rendered evidence images.
+# Keep public docs assets explicit; do not commit vendor PDFs by accident.
 TK-S4661_Rev.T17.2.pdf
 *.pdf
 !docs/**/*.pdf

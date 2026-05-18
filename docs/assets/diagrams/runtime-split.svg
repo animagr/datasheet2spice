@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-label="datasheet2spice runtime split">
+  <style>
+    .box { fill: #ffffff; stroke: #8da2b8; stroke-width: 1.5; rx: 8; }
+    .head { fill: #eef6ff; stroke: #3b7fbd; stroke-width: 1.5; rx: 8; }
+    .core { fill: #f0fbf7; stroke: #2d9b72; stroke-width: 1.5; rx: 8; }
+    .text { font: 15px Arial, sans-serif; fill: #17202a; }
+    .small { font: 12px Arial, sans-serif; fill: #4e5d6c; }
+    .arrow { stroke: #52677d; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+  </style>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#52677d"/>
+    </marker>
+  </defs>
+  <rect x="36" y="38" width="250" height="74" class="head"/>
+  <text x="58" y="68" class="text">GitHub Pages</text>
+  <text x="58" y="92" class="small">Browser PDF.js, JSZip, starter export</text>
+  <rect x="355" y="38" width="250" height="74" class="head"/>
+  <text x="377" y="68" class="text">Local Python Backend</text>
+  <text x="377" y="92" class="small">PyMuPDF, evidence, fitting, digitization</text>
+  <rect x="674" y="38" width="250" height="74" class="head"/>
+  <text x="696" y="68" class="text">Future Remote API</text>
+  <text x="696" y="92" class="small">OCR, batch jobs, team libraries</text>
+
+  <rect x="190" y="170" width="580" height="66" class="core"/>
+  <text x="220" y="200" class="text">datasheet2spice-api-v1</text>
+  <text x="220" y="222" class="small">Shared operations: extract, fit, validate, digitize, emit bundle</text>
+
+  <rect x="96" y="282" width="150" height="44" class="box"/>
+  <text x="119" y="310" class="small">Component Profiles</text>
+  <rect x="278" y="282" width="120" height="44" class="box"/>
+  <text x="313" y="310" class="small">Extractors</text>
+  <rect x="430" y="282" width="100" height="44" class="box"/>
+  <text x="462" y="310" class="small">Fitters</text>
+  <rect x="562" y="282" width="130" height="44" class="box"/>
+  <text x="589" y="310" class="small">Emitters</text>
+  <rect x="724" y="282" width="140" height="44" class="box"/>
+  <text x="750" y="310" class="small">Validators</text>
+
+  <path d="M161 112 L430 170" class="arrow"/>
+  <path d="M480 112 L480 170" class="arrow"/>
+  <path d="M799 112 L530 170" class="arrow"/>
+  <path d="M480 236 L171 282" class="arrow"/>
+  <path d="M480 236 L338 282" class="arrow"/>
+  <path d="M480 236 L480 282" class="arrow"/>
+  <path d="M480 236 L627 282" class="arrow"/>
+  <path d="M480 236 L794 282" class="arrow"/>
+</svg>

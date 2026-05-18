@@ -8,7 +8,11 @@ from datasheet2spice.validate import validate_project
 
 
 ROOT = Path(__file__).resolve().parents[1]
-LOCAL_S4661 = ROOT / "TK-S4661_Rev.T17.2.pdf"
+LOCAL_S4661_CANDIDATES = (
+    ROOT / "tmp" / "local_datasheets" / "TK-S4661_Rev.T17.2.pdf",
+    ROOT / "TK-S4661_Rev.T17.2.pdf",
+)
+LOCAL_S4661 = next((path for path in LOCAL_S4661_CANDIDATES if path.exists()), LOCAL_S4661_CANDIDATES[0])
 
 
 class PdfMosfetExtractorTests(unittest.TestCase):

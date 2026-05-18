@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "datasheet2spice"
 version = "1.0.0"
-description = "Traceable datasheet-to-SPICE model generation for power MOSFETs and SiC MOSFETs."
+description = "Traceable datasheet-to-SPICE model generation for electronic components, starting with power MOSFETs and power diodes."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
   { name = "datasheet2spice contributors" }
 ]
-keywords = ["spice", "mosfet", "sic", "datasheet", "ltspice", "ngspice", "pspice", "hspice", "xyce", "vdmos"]
+keywords = ["spice", "mosfet", "diode", "sic", "datasheet", "ltspice", "ngspice", "pspice", "hspice", "xyce", "vdmos"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
@@ -31,10 +31,10 @@ pdf = ["pymupdf>=1.24", "pillow>=10", "numpy>=1.26"]
 dev = ["build>=1.2", "hatchling>=1.25"]
 
 [project.urls]
-Homepage = "https://github.com/your-org/datasheet2spice"
-Documentation = "https://github.com/your-org/datasheet2spice/tree/main/docs"
-Issues = "https://github.com/your-org/datasheet2spice/issues"
-Source = "https://github.com/your-org/datasheet2spice"
+Homepage = "https://github.com/lisiqi1983/datasheet2spice"
+Documentation = "https://lisiqi1983.github.io/datasheet2spice/"
+Issues = "https://github.com/lisiqi1983/datasheet2spice/issues"
+Source = "https://github.com/lisiqi1983/datasheet2spice"
 
 [project.scripts]
 datasheet2spice = "datasheet2spice.cli:main"

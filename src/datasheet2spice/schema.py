@@ -35,13 +35,27 @@ class DeviceProject:
         return project
 
     @classmethod
-    def new(cls, part_number: str, datasheet: str | None = None, vendor: str | None = None) -> "DeviceProject":
+    def new(
+        cls,
+        part_number: str,
+        datasheet: str | None = None,
+        vendor: str | None = None,
+        device_type: str = "n_power_mosfet",
+        profile: str = "mosfet.power",
+    ) -> "DeviceProject":
+        family = profile.split(".", 1)[0] if "." in profile else "mosfet"
+        if family == "diode" and device_type == "n_power_mosfet":
+            device_type = "power_diode"
         data: JsonDict = {
             "schema_version": "1.0",
+            "component": {
+                "family": family,
+                "profile": profile,
+            },
             "device": {
                 "part_number": part_number,
                 "vendor": vendor or "",
-                "type": "n_power_mosfet",
+                "type": device_type,
                 "datasheet": datasheet or "",
             },
             "ratings": {},
@@ -120,6 +134,10 @@ class DeviceProject:
                     "datasheet": data.get("datasheet", ""),
                     "datasheet_rev": data.get("datasheet_rev", ""),
                 },
+                "component": {
+                    "family": "mosfet",
+                    "profile": "mosfet.power",
+                },
                 "ratings": data.get("ratings", {}),
                 "static": {
                     "vgs_th_v": electrical.get("vgs_th_v", {}),
@@ -162,3 +180,6 @@ class DeviceProject:
         )
         project.validate()
         return project
+
+
+ComponentProject = DeviceProject

@@ -38,6 +38,10 @@ package parasitics.
   capacitances, and parasitics. This keeps file generation and early topology
   checks portable, but it is not a native VDMOS model.
 
+`diode-basic` supports every dialect above with a portable two-terminal
+subcircuit and native `.model ... D(...)` card. The same generated core model is
+used across dialects because the SPICE diode primitive is widely supported.
+
 ## Accuracy Notes
 
 Dialect support means the emitter writes a netlist in the syntax family of the
@@ -48,8 +52,8 @@ For transient accuracy, prefer:
 
 1. `abm-basic` for cross-dialect behavior review.
 2. `vdmos-static-fast` native LTspice/ngspice for fast compact-model sweeps.
-3. Measured double-pulse fitting before design use.
+3. `diode-basic` for first diode recovery and junction-capacitance checks.
+4. Measured double-pulse or curve fitting before design use.
 
 The `qspice` dialect is intentionally marked experimental until it is backed by
 automated QSPICE smoke tests.
-

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Any
 
 from .schema import DeviceProject
@@ -27,11 +28,49 @@ class FitResult:
 def fit_project_parameters(project: DeviceProject) -> dict[str, Any]:
     """Fit model starter parameters from the currently extracted project data."""
 
-    results = [fit_vdmos_static(project), fit_abm_basic(project)]
+    if project.get_path("component", "family", default="mosfet") == "diode":
+        results = [fit_diode_basic(project)]
+    else:
+        results = [fit_vdmos_static(project), fit_abm_basic(project)]
     project.data.setdefault("models", {}).setdefault("fits", {})
     for result in results:
         project.data["models"]["fits"][result.model] = result.as_dict()
     return {"fits": [result.as_dict() for result in results], "project": project.data}
+
+
+def fit_diode_basic(project: DeviceProject) -> FitResult:
+    ratings = project.get_path("ratings", default={})
+    forward = project.get_path("static", "forward_voltage", default={})
+    capacitance = project.get_path("dynamic", "junction_capacitance", default={})
+    recovery = project.get_path("dynamic", "reverse_recovery", default={})
+
+    vrrm = _first_number(ratings, ("vrrm_v", "vr_v", "vbr_v"), 600.0)
+    if_ref = _first_number(ratings, ("if_av_a", "if_cont_a", "if_a"), 10.0)
+    if_ref = _first_number(forward, ("if_a", "test_current_a"), if_ref)
+    vf = _first_number(forward, ("vf_v", "typ_v", "typ", "max_v", "max", "25"), 1.0)
+    cj0 = _first_number(capacitance, ("cj0_pf", "cj_pf", "ct_pf", "cjo_pf"), 50.0)
+    trr = _first_number(recovery, ("trr_ns", "trr_typ_ns", "trr_max_ns"), 20.0)
+    qrr = _first_number(recovery, ("qrr_nc", "qrr_typ_nc", "qrr_max_nc"), 0.0)
+
+    n = 1.8
+    rs = max((vf / max(if_ref, 1e-9)) * 0.08, 1e-6)
+    exponent = min(max((vf - if_ref * rs) / (n * 0.025852), 1.0), 80.0)
+    saturation = min(max(if_ref / max(math.exp(exponent) - 1.0, 1e-30), 1e-18), 1e-3)
+    tt_ns = max(qrr / max(if_ref, 1e-9), trr * 0.35) if qrr > 0 else trr
+
+    return FitResult(
+        model="diode-basic",
+        parameters={
+            "IS": saturation,
+            "N": n,
+            "RS": rs,
+            "CJO_pF": max(cj0, 0.01),
+            "TT_ns": max(tt_ns, 0.001),
+            "BV": max(vrrm, 1.0),
+        },
+        metrics={"vf_reference_v": vf, "if_reference_a": if_ref, "qrr_nc": qrr, "trr_ns": trr},
+        notes=["Closed-form starter fit from forward voltage, reference current, junction capacitance, and recovery data."],
+    )
 
 
 def fit_vdmos_static(project: DeviceProject) -> FitResult:
@@ -131,6 +170,36 @@ def _temp_value(values: dict[str, Any], temp: int, default: float) -> float:
     if key in values:
         return float(values[key])
     return float(next(iter(values.values())))
+
+
+def _first_number(values: Any, keys: tuple[str, ...], default: float) -> float:
+    if isinstance(values, dict):
+        for key in keys:
+            if key in values:
+                return _safe_float(values[key], default)
+        return default
+    return _safe_float(values, default)
+
+
+def _safe_float(value: Any, default: float) -> float:
+    if isinstance(value, dict):
+        for key in ("typ", "typical", "max", "25", "value"):
+            if key in value:
+                parsed = _safe_float(value[key], math.nan)
+                if math.isfinite(parsed):
+                    return parsed
+        return default
+    if isinstance(value, list):
+        for item in value:
+            parsed = _safe_float(item, math.nan)
+            if math.isfinite(parsed):
+                return parsed
+        return default
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if math.isfinite(parsed) else default
 
 
 def _reverse_recovery_tt(body: dict[str, Any]) -> float:

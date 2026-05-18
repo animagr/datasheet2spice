@@ -12,13 +12,19 @@ from __future__ import annotations
 import csv
 import json
 import math
+import os
 from pathlib import Path
 
 import fitz
 
 
-PDF = Path("TK-S4661_Rev.T17.2.pdf")
-OUT = Path("S4661_fig19_capacitance_vector_points.csv")
+PDF_CANDIDATES = (
+    Path(os.environ["D2S_S4661_PDF"]) if "D2S_S4661_PDF" in os.environ else None,
+    Path("tmp/local_datasheets/TK-S4661_Rev.T17.2.pdf"),
+    Path("TK-S4661_Rev.T17.2.pdf"),
+)
+PDF = next((path for path in PDF_CANDIDATES if path and path.exists()), Path("tmp/local_datasheets/TK-S4661_Rev.T17.2.pdf"))
+OUT = Path(os.environ.get("D2S_S4661_OUT", "build/curves/S4661_fig19_capacitance_vector_points.csv"))
 PAGE_INDEX = 10
 
 # Plot rectangle in PDF points: Fig.19 axes.
@@ -108,6 +114,9 @@ def y_at_x(points: list[tuple[float, float]], x: float) -> float:
 
 
 def main() -> None:
+    if not PDF.exists():
+        raise FileNotFoundError(f"S4661 PDF not found: {PDF}")
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     page = fitz.open(PDF)[PAGE_INDEX]
     drawings = page.get_drawings()
     extracted: dict[str, list[float]] = {"vds_v": VDS_POINTS}

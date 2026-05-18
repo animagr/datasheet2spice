@@ -1,6 +1,6 @@
 # datasheet2spice
 
-`datasheet2spice` is a traceable, semi-automatic toolkit for turning power MOSFET and SiC MOSFET datasheet information into SPICE model starters.
+`datasheet2spice` is a traceable, semi-automatic toolkit for turning electronic component datasheet information into SPICE model starters. The first supported component families are power MOSFET / SiC MOSFET and power diode / Schottky / SiC diode.
 
 It is designed for engineering work where every number must be auditable. It does **not** claim that a generated model is a vendor-qualified model. Generated models are starting points for simulation and lab fitting.
 
@@ -10,8 +10,11 @@ It is designed for engineering work where every number must be auditable. It doe
 - Emits fast `VDMOS` compact model starters.
 - Emits simple ABM behavioral model starters for common SPICE, LTspice,
   ngspice, PSpice, HSPICE, Xyce, and experimental QSPICE styles.
+- Emits portable power-diode `.model D` starters with package parasitic subcircuits.
+- Detects multi-part diode series datasheets and lets users choose one part or export all detected variants.
 - Generates double-pulse starter decks.
 - Provides plugin interfaces and Python entry points for PDF extraction, curve import, emitters, and validators.
+- Separates the lightweight GitHub Pages workbench from the high-fidelity local backend through shared service and runtime contracts.
 - Keeps AGPL/GPL tools optional instead of mandatory runtime dependencies.
 
 ## Quick Start
@@ -26,6 +29,7 @@ Generate demo models:
 
 ```powershell
 datasheet2spice emit examples/demo_sic_mosfet/device.json --out build/demo --all
+datasheet2spice emit examples/demo_sic_diode/device.json --out build/demo_diode --model diode-basic --dialect all
 ```
 
 Validate schema and print a short model report:
@@ -52,9 +56,21 @@ Open the hosted browser-only workbench:
 [https://lisiqi1983.github.io/datasheet2spice/workbench_app.html](https://lisiqi1983.github.io/datasheet2spice/workbench_app.html)
 
 The hosted workbench runs fully in the browser. It supports PDF text extraction,
-project JSON review, and starter SPICE export. The local Python workbench remains
-the higher-fidelity path for screenshot evidence and calibrated raster plot
-digitization.
+project JSON review, diode series-part selection, and starter SPICE export. The
+local Python workbench remains the higher-fidelity path for screenshot evidence
+and calibrated raster plot digitization.
+
+Architecture direction:
+
+- GitHub Pages stays lightweight and demonstrates the core workflow without installation.
+- The local Python backend provides high-fidelity extraction, evidence rendering, digitization, fitting, and optional simulator checks.
+- Component profiles and plugins are the extension points for future device families and small engineering tools.
+- Browser frontend source lives in `web/`; deployable GitHub Pages copies live
+  in `docs/` and are synchronized with `python tools/sync_web_frontend.py`.
+- Extension modules expose `datasheet2spice-module-v1` manifests; backend
+  adapters expose the shared `datasheet2spice-api-v1` operation contract.
+- Local datasheets and generated simulation artifacts should stay under
+  `tmp/` or `build/`; see the development workflow before committing.
 
 Ten-minute path for a new device:
 
@@ -106,6 +122,12 @@ datasheet or lab waveforms.
 - Supports common ABM, LTspice, ngspice, PSpice, HSPICE, Xyce, and
   experimental QSPICE emitter dialects.
 
+`Diode basic`
+
+- Portable two-terminal diode starter using native SPICE `D` model cards.
+- Uses forward voltage, reference current, reverse voltage, junction capacitance,
+  leakage, recovery data, and package parasitics when available.
+
 ## License
 
 The core package is Apache-2.0. Optional integrations may have stronger licenses. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
@@ -114,6 +136,9 @@ The core package is Apache-2.0. Optional integrations may have stronger licenses
 
 - [Quick Start](docs/quickstart.md)
 - [Architecture](docs/architecture.md)
+- [Deployment Modes](docs/deployment_modes.md)
+- [Interface Contracts](docs/interface_contracts.md)
+- [Development Workflow](docs/development.md)
 - [Schema](docs/schema.md)
 - [Plugins](docs/plugins.md)
 - [Web Workbench](docs/workbench.md)

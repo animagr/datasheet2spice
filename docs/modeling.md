@@ -42,6 +42,23 @@ The current capacitance implementation is a starter. For better convergence and 
 See [SPICE Dialects](spice_dialects.md) for the supported netlist dialects and
 the boundary between native VDMOS and portable fallback exports.
 
+## Diode Basic
+
+The `diode-basic` emitter writes a portable two-terminal subcircuit around a
+native SPICE `D` model card. It maps datasheet values into starter parameters:
+
+- `BV` from `VRRM` or reverse-voltage rating.
+- `Rs`, `Is`, and `N` from a forward-voltage point and reference current.
+- `Cjo` from junction or total capacitance.
+- `Tt` from `Qrr/IF` or `trr`.
+- `Ibv` from reverse leakage current when available.
+- anode and cathode lead inductance/resistance from package parasitics or
+  conservative defaults.
+
+The generated diode model is intentionally compact and portable. It is suitable
+for early topology checks and first transient comparisons, then should be fitted
+against datasheet `VF(IF)`, `Cj(VR)`, thermal, and recovery curves.
+
 ## Model Level Naming
 
 This project avoids `L1/L2/L3` names because they conflict with:

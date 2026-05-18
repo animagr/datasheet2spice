@@ -11,19 +11,17 @@ from pathlib import Path
 import re
 from urllib.parse import urlparse
 import uuid
-import zipfile
 from typing import Any
 
-from .evaluation import evaluate_project_model
-from .extractors.curve_digitizer import DEFAULT_VDS_POINTS
-from .extractors.pdf_evidence import render_pdf_evidence_images
-from .extractors.pdf_mosfet import extract_mosfet_project_from_pdf
-from .extractors.raster_digitizer import digitize_raster_curve_from_pdf
-from .fitting import fit_project_parameters
-from .plugins import load_plugins, registry
-from .report import render_report
 from .schema import DeviceProject
-from .validate import validate_project
+from .service import (
+    backend_capabilities,
+    digitize_raster_curve,
+    extract_pdf_to_session,
+    fit_project_for_response,
+    generate_model_bundle,
+    generate_model_bundle_for_projects,
+)
 
 
 DEFAULT_WEB_OUT = Path("build/webapp")
@@ -59,6 +57,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         if request_path.startswith("/api/session/"):
             self._send_session_result(request_path)
             return
+        if request_path == "/api/capabilities":
+            self._send_json(backend_capabilities())
+            return
         self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:
@@ -91,32 +92,12 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             filename, payload = files["pdf"]
             pdf_path = session_dir / _safe_filename(filename or "upload.pdf")
             pdf_path.write_bytes(payload)
-            result = extract_mosfet_project_from_pdf(pdf_path)
-            project: DeviceProject = result["project"]
-            project_path = session_dir / f"{project.model_name}.device.json"
-            project.save(project_path)
-            evidence = render_pdf_evidence_images(
+            response = extract_pdf_to_session(
                 pdf_path,
-                session_dir / "assets",
+                session_dir,
                 f"/assets/{session}",
-                findings=result["findings"],
-                tables=result.get("tables", []),
-                curve_digitization=result.get("curve_digitization"),
+                component_profile=fields.get("component_profile") or "mosfet.power",
             )
-            response = {
-                "session": session,
-                "filename": pdf_path.name,
-                "project": project.data,
-                "project_path": str(project_path),
-                "findings": result["findings"],
-                "warnings": result["warnings"],
-                "tables": result.get("tables", []),
-                "curve_digitization": result.get("curve_digitization"),
-                "evidence": evidence,
-                "fit": fit_project_parameters(project)["fits"],
-                "evaluation": evaluate_project_model(project),
-            }
-            (session_dir / "extract_result.json").write_text(json.dumps(response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             self._send_json(response)
         except Exception as exc:
             self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -125,10 +106,14 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
             session = _safe_session(str(body.get("session") or uuid.uuid4()))
-            project = DeviceProject(data=body["project"])
             models = [str(item) for item in body.get("models", ["abm-basic"])]
             dialects = [str(item) for item in body.get("dialects", ["ltspice"])]
-            bundle = generate_model_bundle(project, self.workspace / session / "generated", models, dialects)
+            if "projects" in body:
+                projects = [DeviceProject(data=item) for item in body["projects"]]
+                bundle = generate_model_bundle_for_projects(projects, self.workspace / session / "generated", models, dialects)
+            else:
+                project = DeviceProject(data=body["project"])
+                bundle = generate_model_bundle(project, self.workspace / session / "generated", models, dialects)
             self._send_json(bundle)
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
@@ -139,8 +124,7 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
             project = DeviceProject(data=body["project"])
-            fit = fit_project_parameters(project)
-            self._send_json({"ok": True, "project": fit["project"], "fit": fit["fits"], "evaluation": evaluate_project_model(project)})
+            self._send_json(fit_project_for_response(project))
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -151,14 +135,14 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
             session = _safe_session(str(body["session"]))
             pdf_path = _session_pdf_path(self.workspace / session, body.get("filename"))
-            result = digitize_raster_curve_from_pdf(
+            result = digitize_raster_curve(
                 pdf_path,
                 int(body["page"]),
                 [float(v) for v in body["plot_rect"]],
                 curve_name=str(body.get("curve_name") or "curve"),
                 x_range=_range_tuple(body.get("x_range"), (0.1, 1000.0)),
                 y_range=_range_tuple(body.get("y_range"), (1.0, 100000.0)),
-                x_values=[float(v) for v in body.get("x_values", DEFAULT_VDS_POINTS)],
+                x_values=[float(v) for v in body["x_values"]] if "x_values" in body else None,
                 x_log=bool(body.get("x_log", True)),
                 y_log=bool(body.get("y_log", True)),
                 threshold=int(body.get("threshold", 110)),
@@ -232,51 +216,6 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         self._send_text(path.read_text(encoding="utf-8"), "application/json; charset=utf-8")
 
 
-def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: list[str], dialects: list[str]) -> dict[str, Any]:
-    load_plugins()
-    errors = validate_project(project)
-    if any(model in {"vdmos-static-fast", "abm-basic"} for model in models) and errors:
-        return {"ok": False, "errors": errors, "files": []}
-
-    out = Path(out_dir)
-    out.mkdir(parents=True, exist_ok=True)
-    files: list[dict[str, str]] = []
-    for model in models:
-        if model not in registry.emitters:
-            return {"ok": False, "errors": [f"unknown emitter: {model}"], "files": []}
-        for dialect in dialects:
-            emitted = registry.emitters[model].emit(project, dialect=dialect)
-            for name, content in emitted.items():
-                path = out / name
-                path.write_text(content, encoding="utf-8", newline="\n")
-                files.append({"name": name, "path": str(path), "content": content})
-    report = render_report(project)
-    report_path = out / "report.md"
-    report_path.write_text(report + "\n", encoding="utf-8")
-    files.append({"name": "report.md", "path": str(report_path), "content": report})
-    fit = fit_project_parameters(project)
-    evaluation = evaluate_project_model(project)
-    analysis_path = out / "fit_evaluation.json"
-    analysis_path.write_text(json.dumps({"fit": fit["fits"], "evaluation": evaluation}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    files.append({"name": "fit_evaluation.json", "path": str(analysis_path), "content": analysis_path.read_text(encoding="utf-8")})
-
-    zip_path = out / f"{project.model_name}_models.zip"
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for item in files:
-            zf.write(item["path"], arcname=item["name"])
-    files.append({"name": zip_path.name, "path": str(zip_path), "content": ""})
-    session = out.parent.name
-    return {
-        "ok": True,
-        "errors": [],
-        "files": files,
-        "download_url": f"/download/{session}/{zip_path.name}",
-        "report": report,
-        "fit": fit["fits"],
-        "evaluation": evaluation,
-    }
-
-
 def _content_length(handler: BaseHTTPRequestHandler) -> int:
     return int(handler.headers.get("Content-Length", "0"))
 
@@ -340,7 +279,7 @@ def _optional_float(value: Any) -> float | None:
 
 
 INDEX_HTML = r"""<!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -360,6 +299,7 @@ INDEX_HTML = r"""<!doctype html>
       font-family: Inter, "Segoe UI", Arial, sans-serif;
     }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; background: var(--bg); color: var(--ink); }
     header {
       display: flex; justify-content: space-between; gap: 16px; align-items: center;
@@ -433,6 +373,7 @@ INDEX_HTML = r"""<!doctype html>
     .review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .review-grid input { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px; }
     .pill { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); border-radius: 999px; margin: 2px 4px 2px 0; }
+    .series-box { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fbfcfd; }
     .review-layout { display: block; }
     .panel-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
     .evidence-popover {
@@ -493,11 +434,26 @@ INDEX_HTML = r"""<!doctype html>
       <h2>PDF Upload</h2>
       <div class="body stack">
         <div>
-          <label for="pdf">MOSFET datasheet PDF</label>
+          <label for="componentProfile">Component profile</label>
+          <select id="componentProfile">
+            <option value="mosfet.power">Power MOSFET / SiC MOSFET</option>
+            <option value="diode.power">Power Diode / Schottky / SiC Diode</option>
+          </select>
+        </div>
+        <div>
+          <label for="pdf">Component datasheet PDF</label>
           <input id="pdf" type="file" accept="application/pdf,.pdf" />
         </div>
         <button id="extractBtn">Upload and Extract</button>
         <div id="extractStatus" class="status">Waiting for a PDF.</div>
+        <div id="seriesBox" class="series-box stack" hidden>
+          <div id="seriesStatus" class="status warn"></div>
+          <div>
+            <label for="seriesPartSelect">Series part</label>
+            <select id="seriesPartSelect"></select>
+          </div>
+          <label class="row"><input id="generateAllSeries" type="checkbox"> Generate all detected series parts</label>
+        </div>
         <div id="warnings"></div>
       </div>
     </section>
@@ -554,8 +510,9 @@ INDEX_HTML = r"""<!doctype html>
           <textarea id="projectJson" spellcheck="false"></textarea>
         </div>
         <div class="checks">
-          <label><input type="checkbox" name="model" value="abm-basic" checked /> ABM Behavioral Model</label>
-          <label><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS Compact Model</label>
+          <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="abm-basic" checked /> ABM Behavioral Model</label>
+          <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS Compact Model</label>
+          <label data-model-profile="diode.power"><input type="checkbox" name="model" value="diode-basic" /> Diode Compact Model</label>
         </div>
         <div>
           <label for="dialect">SPICE Dialect</label>
@@ -588,8 +545,15 @@ INDEX_HTML = r"""<!doctype html>
     let currentEvidence = [];
     let currentFindings = [];
     let currentCurve = null;
+    let currentSeries = null;
+    let currentVariantProjects = [];
+    let currentSeriesVariants = [];
     let selectedEvidenceIndex = -1;
     document.getElementById("sessionLabel").textContent = session;
+    document.getElementById("componentProfile").addEventListener("change", () => updateModelControls(true));
+    document.getElementById("seriesPartSelect").addEventListener("change", onSeriesPartChange);
+    document.getElementById("generateAllSeries").addEventListener("change", updateSeriesGenerateState);
+    updateModelControls(true);
     const setStatus = (id, text, kind = "") => {
       const el = document.getElementById(id);
       el.className = "status" + (kind ? " " + kind : "");
@@ -600,12 +564,21 @@ INDEX_HTML = r"""<!doctype html>
       if (!file) { setStatus("extractStatus", "Please choose a PDF first.", "warn"); return; }
       const form = new FormData();
       form.append("session", session);
+      form.append("component_profile", document.getElementById("componentProfile").value || "mosfet.power");
       form.append("pdf", file);
       setStatus("extractStatus", "Uploading and extracting...");
       const res = await fetch("/api/extract", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok || data.error) { setStatus("extractStatus", data.error || "Extraction failed.", "bad"); return; }
-      applyExtractionData(data, `Extracted ${data.project.device.part_number}. Review the JSON on the right.`);
+      const series = data.series;
+      const needsChoice = series && series.parts?.length > 1 && !series.has_default;
+      applyExtractionData(
+        data,
+        needsChoice
+          ? `Detected ${series.parts.length} series parts in ${data.filename}. Choose the target part before generation.`
+          : `Extracted ${data.project.device.part_number}. Review the JSON on the right.`,
+        needsChoice ? "warn" : ""
+      );
     });
     if (requestedSession) {
       loadStoredSession(requestedSession);
@@ -615,18 +588,44 @@ INDEX_HTML = r"""<!doctype html>
       const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
       const data = await res.json();
       if (!res.ok || data.error) { setStatus("extractStatus", data.error || "Session result not found.", "warn"); return; }
-      applyExtractionData(data, `Loaded stored extraction results for ${data.project.device.part_number}.`);
+      const series = data.series;
+      const needsChoice = series && series.parts?.length > 1 && !series.has_default;
+      applyExtractionData(
+        data,
+        needsChoice
+          ? `Loaded a series datasheet with ${series.parts.length} parts. Choose the target part before generation.`
+          : `Loaded stored extraction results for ${data.project.device.part_number}.`,
+        needsChoice ? "warn" : ""
+      );
     }
-    function applyExtractionData(data, statusText) {
+    function applyExtractionData(data, statusText, statusKind = "") {
       lastExtractData = data;
+      currentSeries = data.series || null;
+      currentVariantProjects = data.variant_projects || [];
+      currentSeriesVariants = data.series_variants || [];
+      syncProfileFromProject(data.project);
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
       document.getElementById("fitBtn").disabled = false;
       document.getElementById("applyReviewBtn").disabled = false;
       document.getElementById("rasterBtn").disabled = false;
-      setStatus("extractStatus", statusText);
-      currentFindings = data.findings || [];
-      document.getElementById("warnings").innerHTML = (data.warnings || []).map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
+      renderSeriesSelector();
+      setStatus("extractStatus", statusText, statusKind);
+      renderWarnings(data.warnings || []);
+      renderFindingsTable(data.findings || []);
+      renderReviewFields(data.project);
+      renderCurve(data.curve_digitization);
+      renderTables(data.tables || []);
+      selectedEvidenceIndex = -1;
+      renderEvidence(data.evidence || []);
+      if (currentFindings.length) selectFinding(currentFindings[0].field, false);
+      renderEvaluation(data.evaluation, data.fit || []);
+    }
+    function renderWarnings(warnings) {
+      document.getElementById("warnings").innerHTML = warnings.map(w => `<div class="status warn">${escapeHtml(w)}</div>`).join("");
+    }
+    function renderFindingsTable(findings) {
+      currentFindings = findings || [];
       document.getElementById("findings").innerHTML = currentFindings.map((f, idx) => `
         <tr class="finding-row" data-finding-field="${escapeHtml(f.field)}">
           <td class="mono">${escapeHtml(f.field)}</td>
@@ -640,13 +639,77 @@ INDEX_HTML = r"""<!doctype html>
       document.querySelectorAll("[data-finding-field]").forEach(row => {
         row.addEventListener("click", () => selectFinding(row.dataset.findingField, true));
       });
-      renderReviewFields(data.project);
-      renderCurve(data.curve_digitization);
-      renderTables(data.tables || []);
-      selectedEvidenceIndex = -1;
-      renderEvidence(data.evidence || []);
-      if (currentFindings.length) selectFinding(currentFindings[0].field, false);
-      renderEvaluation(data.evaluation, data.fit || []);
+      wireEvidenceTriggers();
+    }
+    function syncProfileFromProject(project) {
+      const profile = project?.component?.profile;
+      const select = document.getElementById("componentProfile");
+      if (profile && [...select.options].some(option => option.value === profile)) {
+        select.value = profile;
+      }
+      updateModelControls(true);
+    }
+    function updateModelControls(resetChecks = false) {
+      const profile = document.getElementById("componentProfile").value || "mosfet.power";
+      document.querySelectorAll("[data-model-profile]").forEach(label => {
+        const input = label.querySelector("input[name=model]");
+        const visible = label.dataset.modelProfile === profile;
+        label.hidden = !visible;
+        if (resetChecks && input) input.checked = visible;
+      });
+    }
+    function renderSeriesSelector() {
+      const series = currentSeries;
+      const box = document.getElementById("seriesBox");
+      const select = document.getElementById("seriesPartSelect");
+      const generateAll = document.getElementById("generateAllSeries");
+      if (!series || !series.parts || series.parts.length <= 1) {
+        box.hidden = true;
+        generateAll.checked = false;
+        return;
+      }
+      box.hidden = false;
+      const needsChoice = !series.has_default;
+      document.getElementById("seriesStatus").textContent = needsChoice
+        ? `Series datasheet detected: ${series.parts.join(", ")}. No filename match was found.`
+        : `Series datasheet detected: ${series.parts.join(", ")}. Default part: ${series.default_part}.`;
+      document.getElementById("seriesStatus").className = "status" + (needsChoice ? " warn" : "");
+      select.innerHTML =
+        (needsChoice ? '<option value="">Choose a part...</option>' : "") +
+        series.parts.map(part => `<option value="${escapeHtml(part)}">${escapeHtml(part)}</option>`).join("");
+      select.value = needsChoice ? "" : series.selected_part;
+      updateSeriesGenerateState();
+    }
+    function onSeriesPartChange() {
+      const part = document.getElementById("seriesPartSelect").value;
+      if (!part) {
+        updateSeriesGenerateState();
+        return;
+      }
+      const project = currentVariantProjects.find(item => item.device?.part_number === part);
+      if (!project) return;
+      if (lastExtractData) lastExtractData.project = project;
+      if (currentSeries) currentSeries.selected_part = part;
+      const variant = currentSeriesVariants.find(item => item.part_number === part);
+      if (variant?.findings) {
+        renderFindingsTable(variant.findings);
+        if (currentFindings.length) selectFinding(currentFindings[0].field, false);
+      }
+      if (variant?.warnings) renderWarnings(variant.warnings);
+      document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
+      renderReviewFields(project);
+      document.getElementById("generateBtn").disabled = false;
+      setStatus("extractStatus", `Selected ${part}. Review the JSON before generation.`);
+    }
+    function updateSeriesGenerateState() {
+      if (!lastExtractData) {
+        document.getElementById("generateBtn").disabled = true;
+        return;
+      }
+      const needsChoice = currentSeries && currentSeries.parts?.length > 1 && !currentSeries.has_default && !document.getElementById("seriesPartSelect").value;
+      const generateAll = document.getElementById("generateAllSeries").checked && currentVariantProjects.length > 1;
+      document.getElementById("generateBtn").disabled = Boolean(needsChoice && !generateAll);
+      if (needsChoice && generateAll) setStatus("extractStatus", "All detected series parts will be generated.");
     }
     document.getElementById("applyReviewBtn").addEventListener("click", () => {
       let project;
@@ -709,18 +772,21 @@ INDEX_HTML = r"""<!doctype html>
       setStatus("rasterStatus", `Extracted ${data.digitization.metrics.extracted_points}/${data.digitization.metrics.requested_points} points with ${Math.round(data.digitization.confidence * 100)}% confidence.`);
     });
     document.getElementById("generateBtn").addEventListener("click", async () => {
+      let project;
+      try { project = JSON.parse(document.getElementById("projectJson").value); }
+      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      syncProfileFromProject(project);
       const models = [...document.querySelectorAll("input[name=model]:checked")].map(el => el.value);
       const dialect = document.getElementById("dialect").value;
       const dialects = dialect === "all" ? ["common", "ltspice", "ngspice", "pspice", "hspice", "xyce", "qspice"] : [dialect];
       if (!models.length) { setStatus("generateStatus", "Select at least one model family.", "warn"); return; }
-      let project;
-      try { project = JSON.parse(document.getElementById("projectJson").value); }
-      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      const generateAll = document.getElementById("generateAllSeries").checked && currentVariantProjects.length > 1;
+      const body = generateAll ? { session, projects: currentVariantProjects, models, dialects } : { session, project, models, dialects };
       setStatus("generateStatus", "Generating models...");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session, project, models, dialects })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok || !data.ok) { setStatus("generateStatus", (data.errors || [data.error]).join("; "), "bad"); return; }
@@ -731,15 +797,27 @@ INDEX_HTML = r"""<!doctype html>
       document.getElementById("report").textContent = data.report || "";
     });
     function renderReviewFields(project) {
-      const fields = [
+      const isDiode = project?.component?.profile === "diode.power" || project?.component?.family === "diode";
+      const fields = isDiode ? [
+        ["ratings.vrrm_v", "VRRM (V)"],
+        ["ratings.if_av_a", "IF(AV) (A)"],
+        ["ratings.ifsm_a", "IFSM (A)"],
+        ["static.forward_voltage.vf_v", "VF (V)"],
+        ["static.forward_voltage.if_a", "IF test (A)"],
+        ["static.leakage.ir_ua", "IR (uA)"],
+        ["dynamic.junction_capacitance.cj0_pf", "Cj0 (pF)"],
+        ["dynamic.reverse_recovery.trr_ns", "trr (ns)"],
+        ["dynamic.reverse_recovery.qrr_nc", "Qrr (nC)"],
+        ["thermal.rth_jc_c_per_w", "RthJC (C/W)"]
+      ] : [
         ["ratings.vdss_v", "VDSS (V)"],
         ["ratings.id_cont_a", "ID cont (A)"],
         ["ratings.vgs_on_v", "VGS on (V)"],
         ["ratings.vgs_off_v", "VGS off (V)"],
         ["static.vgs_th_v.25", "VGS(th) 25C (V)"],
-        ["static.rds_on_mohm.25", "RDS(on) 25C (mΩ)"],
+        ["static.rds_on_mohm.25", "RDS(on) 25C (mOhm)"],
         ["static.gfs_s", "gfs (S)"],
-        ["static.rg_int_ohm", "RG int (Ω)"],
+        ["static.rg_int_ohm", "RG int (Ohm)"],
         ["dynamic.gate_charge.qg_nc", "Qg (nC)"],
         ["dynamic.gate_charge.qgs_nc", "Qgs (nC)"],
         ["dynamic.gate_charge.qgd_nc", "Qgd (nC)"],
@@ -913,7 +991,7 @@ INDEX_HTML = r"""<!doctype html>
       modal.className = "image-modal";
       modal.innerHTML = `
         <div class="image-modal-bar">
-          <div><b>${escapeHtml(evidenceTitle(item))}</b> · page ${escapeHtml(item.page || "")} · ${escapeHtml(bbox.join(", "))}</div>
+          <div><b>${escapeHtml(evidenceTitle(item))}</b> - page ${escapeHtml(item.page || "")} - ${escapeHtml(bbox.join(", "))}</div>
           <button type="button" data-modal-close="1">Close</button>
         </div>
         <div class="image-modal-stage">

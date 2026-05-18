@@ -6,6 +6,9 @@ layout: default
 
 - [Quick Start](quickstart.md)
 - [Architecture](architecture.md)
+- [Deployment Modes](deployment_modes.md)
+- [Interface Contracts](interface_contracts.md)
+- [Development Workflow](development.md)
 - [Device Schema](schema.md)
 - [Plugin Interfaces](plugins.md)
 - [Web Workbench](workbench.md)
