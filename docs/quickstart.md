@@ -95,6 +95,25 @@ datasheet2spice import-capacitance-csv my_mosfet.device.json caps.csv
 
 Use `--out reviewed.device.json` if you want to keep the original project unchanged.
 
+WebPlotDigitizer can also export multiple datasets side by side:
+
+```csv
+ciss,,coss,,crss,
+X,Y,X,Y,X,Y
+0.1,656.6,0.097,616.0,0.098,305.1
+0.2,650.6,0.195,587.0,0.196,295.8
+```
+
+Import that native format with:
+
+```powershell
+datasheet2spice import-wpd-capacitance-csv my_mosfet.device.json wpd_datasets.csv
+```
+
+The importer uses the first `X` column as `vds_v` and the three `Y` columns as
+`ciss_pf`, `coss_pf`, and `crss_pf`. It warns if the other `X` columns differ
+from the first column by more than 5%.
+
 ## Run LTspice Batch Validation
 
 ```powershell

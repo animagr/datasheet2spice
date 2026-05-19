@@ -13,7 +13,7 @@ from .quality import benchmark_project_models, load_case, render_score_report, s
 from .report import render_report
 from .schema import DeviceProject
 from .validate import validate_project, run_ltspice
-from .extractors.csv_curves import read_capacitance_csv
+from .extractors.csv_curves import read_capacitance_csv, read_wpd_capacitance_csv_with_warnings
 
 
 def _load_project(path: Path) -> DeviceProject:
@@ -90,6 +90,28 @@ def cmd_import_capacitance_csv(args: argparse.Namespace) -> int:
     )
     out = Path(args.out) if args.out else Path(args.project)
     project.save(out)
+    print(out)
+    return 0
+
+
+def cmd_import_wpd_capacitance_csv(args: argparse.Namespace) -> int:
+    project = _load_project(Path(args.project))
+    imported = read_wpd_capacitance_csv_with_warnings(args.csv)
+    project.data.setdefault("dynamic", {})["capacitance"] = imported.data
+    note = "Imported WebPlotDigitizer side-by-side Ciss/Coss/Crss datasets; first X column used as shared VDS axis."
+    if imported.warnings:
+        note += " Warnings: " + " ".join(imported.warnings)
+    project.data.setdefault("provenance", []).append(
+        {
+            "source": str(args.csv),
+            "kind": "webplotdigitizer_capacitance_csv",
+            "note": note,
+        }
+    )
+    out = Path(args.out) if args.out else Path(args.project)
+    project.save(out)
+    for warning in imported.warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
     print(out)
     return 0
 
@@ -221,6 +243,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("csv")
     p.add_argument("--out", help="output project path; defaults to overwriting the input project")
     p.set_defaults(func=cmd_import_capacitance_csv)
+
+    p = sub.add_parser("import-wpd-capacitance-csv", help="import native WebPlotDigitizer Ciss/Coss/Crss CSV into a project")
+    p.add_argument("project")
+    p.add_argument("csv")
+    p.add_argument("--out", help="output project path; defaults to overwriting the input project")
+    p.set_defaults(func=cmd_import_wpd_capacitance_csv)
 
     p = sub.add_parser("validate", help="validate a project schema")
     p.add_argument("project")

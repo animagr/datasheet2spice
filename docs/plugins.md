@@ -44,6 +44,7 @@ Built-in emitters:
 Built-in extractors:
 
 - `capacitance-csv`
+- `wpd-capacitance-csv`
 
 ## Validators
 
@@ -95,4 +96,11 @@ arbitrary installed Python. For trusted local extensions only, call
 
 ```text
 vds_v,ciss_pf,coss_pf,crss_pf
+```
+
+`datasheet2spice.extractors.csv_curves.read_wpd_capacitance_csv` supports native WebPlotDigitizer side-by-side datasets:
+
+```text
+ciss,,coss,,crss,
+X,Y,X,Y,X,Y
 ```

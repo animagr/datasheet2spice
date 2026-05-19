@@ -43,6 +43,25 @@ class CliTests(unittest.TestCase):
             self.assertIn('"vds_v": [', text)
             self.assertIn('"digitized_capacitance_csv"', text)
 
+    def test_import_wpd_capacitance_csv(self):
+        with tempfile.TemporaryDirectory() as td:
+            project = Path(td) / "device.json"
+            csv = Path(td) / "wpd.csv"
+            project.write_text(DEMO.read_text(encoding="utf-8"), encoding="utf-8")
+            csv.write_text(
+                "ciss,,coss,,crss,\n"
+                "X,Y,X,Y,X,Y\n"
+                "0.1,1000,0.1,900,0.1,300\n"
+                "100,820,100,240,100,35\n",
+                encoding="utf-8",
+            )
+            rc = cli.main(["import-wpd-capacitance-csv", str(project), str(csv)])
+            self.assertEqual(rc, 0)
+            text = project.read_text(encoding="utf-8")
+            self.assertIn('"vds_v": [', text)
+            self.assertIn('"ciss_pf": [', text)
+            self.assertIn('"webplotdigitizer_capacitance_csv"', text)
+
     def test_emit_accepts_plugin_model_id(self):
         class FakeEmitter:
             name = "fake-model"

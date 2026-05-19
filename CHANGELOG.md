@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic
 Versioning.
 
+## [1.0.3] - 2026-05-19
+
+### Added
+
+- Added `import-wpd-capacitance-csv` for native WebPlotDigitizer side-by-side
+  `Ciss`/`Coss`/`Crss` CSV exports.
+- Added a `wpd-capacitance-csv` extractor plugin for WebPlotDigitizer datasets
+  with `X,Y` column pairs under each curve name.
+- Added provenance tracking with `kind: webplotdigitizer_capacitance_csv` when
+  importing WebPlotDigitizer capacitance curves.
+- Added documentation and tests for importing WebPlotDigitizer capacitance CSV
+  files directly into `dynamic.capacitance`.
+- Added an **Import WPD CSV** control to the local workbench for applying
+  WebPlotDigitizer capacitance exports to the editable project JSON.
+
+### Changed
+
+- WebPlotDigitizer imports now use the first `X` column as the shared `vds_v`
+  axis and map the three `Y` columns into `ciss_pf`, `coss_pf`, and `crss_pf`.
+- WebPlotDigitizer imports warn when `Coss` or `Crss` X values differ from the
+  first X column by more than 5%.
+
 ## [1.0.2] - 2026-05-18
 
 ### Added

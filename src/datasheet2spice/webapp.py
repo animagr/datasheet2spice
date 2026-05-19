@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 import uuid
 from typing import Any
 
+from .extractors.csv_curves import read_wpd_capacitance_csv_with_warnings
 from .schema import DeviceProject
 from .service import (
     backend_capabilities,
@@ -85,6 +86,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/api/save-project":
             self._handle_save_project()
+            return
+        if self.path == "/api/import-wpd-capacitance":
+            self._handle_import_wpd_capacitance()
             return
         if self.path == "/api/raster-digitize":
             self._handle_raster_digitize()
@@ -168,6 +172,46 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             session = _safe_session(str(body["session"]))
             project = DeviceProject(data=body["project"])
             self._send_json(save_project_review(project, self.workspace / session))
+        except KeyError as exc:
+            self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_import_wpd_capacitance(self) -> None:
+        try:
+            fields, files = _parse_multipart(self.headers.get("Content-Type", ""), self.rfile.read(_content_length(self)))
+            if "csv" not in files:
+                self._send_json({"error": "missing CSV file field named 'csv'"}, HTTPStatus.BAD_REQUEST)
+                return
+            session = _safe_session(fields["session"])
+            session_dir = self.workspace / session
+            session_dir.mkdir(parents=True, exist_ok=True)
+            filename, payload = files["csv"]
+            csv_path = session_dir / _safe_data_filename(filename or "wpd_datasets.csv", ".csv")
+            csv_path.write_bytes(payload)
+            project = DeviceProject(data=json.loads(fields["project"]))
+            imported = read_wpd_capacitance_csv_with_warnings(csv_path)
+            project.data.setdefault("dynamic", {})["capacitance"] = imported.data
+            note = "Imported WebPlotDigitizer side-by-side Ciss/Coss/Crss datasets; first X column used as shared VDS axis."
+            if imported.warnings:
+                note += " Warnings: " + " ".join(imported.warnings)
+            project.data.setdefault("provenance", []).append(
+                {
+                    "source": str(csv_path),
+                    "kind": "webplotdigitizer_capacitance_csv",
+                    "note": note,
+                }
+            )
+            saved = save_project_review(project, session_dir)
+            self._send_json(
+                {
+                    "ok": True,
+                    "project": project.data,
+                    "warnings": imported.warnings,
+                    "save_paths": saved.get("save_paths", {}),
+                    "csv_path": str(csv_path),
+                }
+            )
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -294,6 +338,12 @@ def _safe_filename(value: str) -> str:
     name = Path(value).name
     cleaned = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
     return cleaned if cleaned.lower().endswith(".pdf") else f"{cleaned}.pdf"
+
+
+def _safe_data_filename(value: str, suffix: str) -> str:
+    name = Path(value).name
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]", "_", name) or f"upload{suffix}"
+    return cleaned if cleaned.lower().endswith(suffix.lower()) else f"{cleaned}{suffix}"
 
 
 def _session_pdf_path(session_dir: Path, filename: Any = None) -> Path:
@@ -553,6 +603,10 @@ INDEX_HTML = r"""<!doctype html>
           <label for="projectJson">Project JSON, editable before generation</label>
           <textarea id="projectJson" spellcheck="false"></textarea>
         </div>
+        <div>
+          <label for="wpdCsv">WebPlotDigitizer capacitance CSV</label>
+          <input id="wpdCsv" type="file" accept=".csv,text/csv" />
+        </div>
         <div class="checks">
           <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="abm-basic" checked /> ABM Behavioral Model</label>
           <label data-model-profile="mosfet.power"><input type="checkbox" name="model" value="vdmos-static-fast" checked /> VDMOS Compact Model</label>
@@ -573,6 +627,7 @@ INDEX_HTML = r"""<!doctype html>
           </select>
         </div>
         <div class="row">
+          <button class="secondary" id="importWpdBtn" disabled>Import WPD CSV</button>
           <button class="secondary" id="saveProjectBtn" disabled>Save Project JSON</button>
           <button class="secondary" id="fitBtn" disabled>Refit and Evaluate</button>
           <button id="generateBtn" disabled>Generate Model Files</button>
@@ -652,6 +707,7 @@ INDEX_HTML = r"""<!doctype html>
       syncProfileFromProject(data.project);
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
+      document.getElementById("importWpdBtn").disabled = false;
       document.getElementById("saveProjectBtn").disabled = false;
       document.getElementById("fitBtn").disabled = false;
       document.getElementById("applyReviewBtn").disabled = false;
@@ -747,6 +803,7 @@ INDEX_HTML = r"""<!doctype html>
       document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
       renderReviewFields(project);
       document.getElementById("generateBtn").disabled = false;
+      document.getElementById("importWpdBtn").disabled = false;
       document.getElementById("saveProjectBtn").disabled = false;
       setStatus("extractStatus", `Selected ${part}. Review the JSON before generation.`);
     }
@@ -788,6 +845,27 @@ INDEX_HTML = r"""<!doctype html>
       if (lastExtractData) lastExtractData.project = data.project;
       renderSavedPaths(data.save_paths || {});
       setStatus("generateStatus", "Reviewed project JSON saved.");
+    });
+    document.getElementById("importWpdBtn").addEventListener("click", async () => {
+      const file = document.getElementById("wpdCsv").files[0];
+      if (!file) { setStatus("generateStatus", "Choose a WebPlotDigitizer CSV first.", "warn"); return; }
+      let project;
+      try { project = JSON.parse(document.getElementById("projectJson").value); }
+      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      const form = new FormData();
+      form.append("session", session);
+      form.append("project", JSON.stringify(project));
+      form.append("csv", file);
+      setStatus("generateStatus", "Importing WebPlotDigitizer capacitance CSV...");
+      const res = await fetch("/api/import-wpd-capacitance", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok || data.error) { setStatus("generateStatus", data.error || "CSV import failed.", "bad"); return; }
+      document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
+      if (lastExtractData) lastExtractData.project = data.project;
+      renderReviewFields(data.project);
+      renderSavedPaths(data.save_paths || {});
+      const warningText = (data.warnings || []).length ? ` ${data.warnings.join(" ")}` : "";
+      setStatus("generateStatus", `Imported WPD capacitance CSV and saved project JSON.${warningText}`, warningText ? "warn" : "");
     });
     document.getElementById("fitBtn").addEventListener("click", async () => {
       let project;

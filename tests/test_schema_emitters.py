@@ -25,6 +25,7 @@ class SchemaEmitterTests(unittest.TestCase):
         self.assertIn("diode-abm-dynamic", registry.emitters)
         self.assertIn("vdmos-static-fast", registry.emitters)
         self.assertIn("capacitance-csv", registry.extractors)
+        self.assertIn("wpd-capacitance-csv", registry.extractors)
         self.assertIn("schema", registry.validators)
 
     def test_emit_abm_ltspice(self):

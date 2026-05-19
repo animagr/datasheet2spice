@@ -91,7 +91,8 @@ Every value extracted from a datasheet should eventually record:
 
 The built-in `import-capacitance-csv` command appends a provenance item with
 `kind: digitized_capacitance_csv` so generated models can be traced back to the
-curve source.
+curve source. The WebPlotDigitizer-native `import-wpd-capacitance-csv` command
+uses `kind: webplotdigitizer_capacitance_csv`.
 
 ## Capacitance Curves
 

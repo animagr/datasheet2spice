@@ -4,7 +4,7 @@ import unittest
 
 from datasheet2spice.schema import DeviceProject
 from datasheet2spice.service import save_project_review
-from datasheet2spice.webapp import generate_model_bundle
+from datasheet2spice.webapp import INDEX_HTML, generate_model_bundle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +34,11 @@ class WebAppTests(unittest.TestCase):
             self.assertTrue(Path(paths["session_project"]).exists())
             self.assertTrue(Path(paths["part_project"]).exists())
             self.assertEqual(Path(paths["part_project"]).parent.name, "DEMO_SIC_1200")
+
+    def test_local_workbench_has_wpd_import_control(self):
+        self.assertIn("Import WPD CSV", INDEX_HTML)
+        self.assertIn("/api/import-wpd-capacitance", INDEX_HTML)
+        self.assertIn("wpdCsv", INDEX_HTML)
 
 
 if __name__ == "__main__":

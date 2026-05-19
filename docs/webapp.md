@@ -103,6 +103,8 @@ digitized curve for serious transient fitting.
 - Raster plot digitization renders a calibrated PDF plot crop and traces a
   single scanned curve with axis/grid suppression, coverage metrics, and a
   reviewable point list. See [Raster Plot Digitization](raster_digitization.md).
+- WebPlotDigitizer CSV import applies native side-by-side `Ciss`/`Coss`/`Crss`
+  datasets to `dynamic.capacitance` and saves the reviewed project JSON.
 - Parameter fitting computes VDMOS starter parameters, MOSFET ABM
   recommendations such as `KID`, `CGD_SCALE`, and `CGS_SCALE`, and diode ABM
   recovery parameters such as `TAU_ns` and `RR_SCALE`.
