@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 from typing import Any
 import zipfile
 
@@ -51,8 +52,6 @@ def extract_pdf_to_session(
     else:
         result = extract_mosfet_project_from_pdf(pdf)
     project: DeviceProject = result["project"]
-    project_path = session / f"{project.model_name}.device.json"
-    project.save(project_path)
     evidence = render_pdf_evidence_images(
         pdf,
         session / "assets",
@@ -65,7 +64,7 @@ def extract_pdf_to_session(
         "session": session.name,
         "filename": pdf.name,
         "project": project.data,
-        "project_path": str(project_path),
+        "project_path": "",
         "findings": result["findings"],
         "warnings": result["warnings"],
         "tables": result.get("tables", []),
@@ -77,8 +76,27 @@ def extract_pdf_to_session(
         "variant_projects": result.get("variant_projects", []),
         "series_variants": result.get("series_variants", []),
     }
-    (session / "extract_result.json").write_text(json.dumps(response, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    _write_extract_result(response, session, project)
     return response
+
+
+def save_project_review(project: DeviceProject, session_dir: str | Path) -> dict[str, Any]:
+    """Persist the current reviewed project JSON in session and by-part folders."""
+
+    session = Path(session_dir)
+    session.mkdir(parents=True, exist_ok=True)
+    paths = _save_project_files(project, session)
+    response_path = session / "extract_result.json"
+    if response_path.exists():
+        response = json.loads(response_path.read_text(encoding="utf-8-sig"))
+        response["project"] = project.data
+        _write_extract_result(response, session, project)
+        paths = response.get("save_paths", paths)
+    return {
+        "ok": True,
+        "project": project.data,
+        "save_paths": _stringify_paths(paths),
+    }
 
 
 def fit_project_for_response(project: DeviceProject) -> dict[str, Any]:
@@ -139,6 +157,9 @@ def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: l
                 path = out / name
                 path.write_text(content, encoding="utf-8", newline="\n")
                 files.append({"name": name, "path": str(path), "content": content})
+    project_json = out / f"{project.model_name}.device.json"
+    project_json.write_text(json.dumps(project.data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    files.append({"name": project_json.name, "path": str(project_json), "content": project_json.read_text(encoding="utf-8")})
     report = render_report(project)
     report_path = out / "report.md"
     report_path.write_text(report + "\n", encoding="utf-8")
@@ -155,6 +176,8 @@ def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: l
             zf.write(item["path"], arcname=item["name"])
     files.append({"name": zip_path.name, "path": str(zip_path), "content": ""})
     session = out.parent.name
+    part_generated = _part_dir(out.parent, project) / "generated"
+    _mirror_files(files, part_generated)
     return {
         "ok": True,
         "errors": [],
@@ -163,6 +186,10 @@ def generate_model_bundle(project: DeviceProject, out_dir: str | Path, models: l
         "report": report,
         "fit": fit["fits"],
         "evaluation": evaluation,
+        "output_paths": {
+            "session_generated": str(out),
+            "part_generated": str(part_generated),
+        },
     }
 
 
@@ -232,3 +259,54 @@ def generate_model_bundle_for_projects(
         "fit": [],
         "evaluation": None,
     }
+
+
+def _part_dir(session: Path, project: DeviceProject) -> Path:
+    return _parts_root(session) / project.model_name
+
+
+def _parts_root(session: Path) -> Path:
+    if session.parent.name == "webapp" and session.parent.parent.name == "build":
+        return session.parent.parent.parent / "parts"
+    return session.parent / "parts"
+
+
+def _save_project_files(project: DeviceProject, session: Path) -> dict[str, Path]:
+    session_project = session / f"{project.model_name}.device.json"
+    part_dir = _part_dir(session, project)
+    part_dir.mkdir(parents=True, exist_ok=True)
+    part_project = part_dir / f"{project.model_name}.device.json"
+    project.save(session_project)
+    project.save(part_project)
+    return {
+        "session_project": session_project,
+        "part_project": part_project,
+        "part_dir": part_dir,
+    }
+
+
+def _write_extract_result(response: dict[str, Any], session: Path, project: DeviceProject) -> None:
+    paths = _save_project_files(project, session)
+    response["project_path"] = str(paths["session_project"])
+    response["save_paths"] = _stringify_paths(paths)
+    session_result = session / "extract_result.json"
+    part_result = paths["part_dir"] / "extract_result.json"
+    response["save_paths"]["session_extract_result"] = str(session_result)
+    response["save_paths"]["part_extract_result"] = str(part_result)
+    text = json.dumps(response, ensure_ascii=False, indent=2) + "\n"
+    session_result.write_text(text, encoding="utf-8")
+    part_result.write_text(text, encoding="utf-8")
+
+
+def _stringify_paths(paths: dict[str, Path] | dict[str, str]) -> dict[str, str]:
+    return {key: str(value) for key, value in paths.items()}
+
+
+def _mirror_files(files: list[dict[str, str]], destination: Path) -> None:
+    destination.mkdir(parents=True, exist_ok=True)
+    for item in files:
+        source = Path(item["path"])
+        if source.exists() and source.is_file():
+            target = destination / item["name"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)

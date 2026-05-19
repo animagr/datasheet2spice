@@ -22,6 +22,7 @@ from .service import (
     fit_project_for_response,
     generate_model_bundle,
     generate_model_bundle_for_projects,
+    save_project_review,
 )
 
 
@@ -82,6 +83,9 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
         if self.path == "/api/fit":
             self._handle_fit()
             return
+        if self.path == "/api/save-project":
+            self._handle_save_project()
+            return
         if self.path == "/api/raster-digitize":
             self._handle_raster_digitize()
             return
@@ -140,6 +144,7 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
                 bundle = generate_model_bundle_for_projects(projects, self.workspace / session / "generated", models, dialects)
             else:
                 project = DeviceProject(data=body["project"])
+                save_project_review(project, self.workspace / session)
                 bundle = generate_model_bundle(project, self.workspace / session / "generated", models, dialects)
             self._send_json(bundle)
         except KeyError as exc:
@@ -152,6 +157,17 @@ class DatasheetWorkbenchHandler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
             project = DeviceProject(data=body["project"])
             self._send_json(fit_project_for_response(project))
+        except KeyError as exc:
+            self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self._send_json({"error": f"{type(exc).__name__}: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    def _handle_save_project(self) -> None:
+        try:
+            body = json.loads(self.rfile.read(_content_length(self)).decode("utf-8"))
+            session = _safe_session(str(body["session"]))
+            project = DeviceProject(data=body["project"])
+            self._send_json(save_project_review(project, self.workspace / session))
         except KeyError as exc:
             self._send_json({"error": f"missing field: {exc}"}, HTTPStatus.BAD_REQUEST)
         except Exception as exc:
@@ -473,6 +489,7 @@ INDEX_HTML = r"""<!doctype html>
         </div>
         <button id="extractBtn">Upload and Extract</button>
         <div id="extractStatus" class="status">Waiting for a PDF.</div>
+        <div id="savedPaths" class="files"></div>
         <div id="seriesBox" class="series-box stack" hidden>
           <div id="seriesStatus" class="status warn"></div>
           <div>
@@ -556,6 +573,7 @@ INDEX_HTML = r"""<!doctype html>
           </select>
         </div>
         <div class="row">
+          <button class="secondary" id="saveProjectBtn" disabled>Save Project JSON</button>
           <button class="secondary" id="fitBtn" disabled>Refit and Evaluate</button>
           <button id="generateBtn" disabled>Generate Model Files</button>
         </div>
@@ -634,6 +652,7 @@ INDEX_HTML = r"""<!doctype html>
       syncProfileFromProject(data.project);
       document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
       document.getElementById("generateBtn").disabled = false;
+      document.getElementById("saveProjectBtn").disabled = false;
       document.getElementById("fitBtn").disabled = false;
       document.getElementById("applyReviewBtn").disabled = false;
       document.getElementById("rasterBtn").disabled = false;
@@ -644,6 +663,7 @@ INDEX_HTML = r"""<!doctype html>
       renderReviewFields(data.project);
       renderCurve(data.curve_digitization);
       renderTables(data.tables || []);
+      renderSavedPaths(data.save_paths || {});
       selectedEvidenceIndex = -1;
       renderEvidence(data.evidence || []);
       if (currentFindings.length) selectFinding(currentFindings[0].field, false);
@@ -727,6 +747,7 @@ INDEX_HTML = r"""<!doctype html>
       document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
       renderReviewFields(project);
       document.getElementById("generateBtn").disabled = false;
+      document.getElementById("saveProjectBtn").disabled = false;
       setStatus("extractStatus", `Selected ${part}. Review the JSON before generation.`);
     }
     function updateSeriesGenerateState() {
@@ -750,6 +771,23 @@ INDEX_HTML = r"""<!doctype html>
       }
       document.getElementById("projectJson").value = JSON.stringify(project, null, 2);
       setStatus("extractStatus", "Review values have been written to JSON.");
+    });
+    document.getElementById("saveProjectBtn").addEventListener("click", async () => {
+      let project;
+      try { project = JSON.parse(document.getElementById("projectJson").value); }
+      catch (err) { setStatus("generateStatus", "Invalid JSON: " + err.message, "bad"); return; }
+      setStatus("generateStatus", "Saving reviewed project JSON...");
+      const res = await fetch("/api/save-project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session, project })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setStatus("generateStatus", data.error || "Save failed.", "bad"); return; }
+      document.getElementById("projectJson").value = JSON.stringify(data.project, null, 2);
+      if (lastExtractData) lastExtractData.project = data.project;
+      renderSavedPaths(data.save_paths || {});
+      setStatus("generateStatus", "Reviewed project JSON saved.");
     });
     document.getElementById("fitBtn").addEventListener("click", async () => {
       let project;
@@ -820,10 +858,17 @@ INDEX_HTML = r"""<!doctype html>
       if (!res.ok || !data.ok) { setStatus("generateStatus", (data.errors || [data.error]).join("; "), "bad"); return; }
       setStatus("generateStatus", `Generated ${data.files.length} files.`);
       renderEvaluation(data.evaluation, data.fit || []);
+      renderSavedPaths(data.output_paths || {});
       document.getElementById("files").innerHTML = `<a href="${data.download_url}">Download ZIP model bundle</a><br>` +
         data.files.map(f => `<span class="mono">${escapeHtml(f.name)}</span>`).join("<br>");
       document.getElementById("report").textContent = data.report || "";
     });
+    function renderSavedPaths(paths) {
+      const entries = Object.entries(paths || {}).filter(([, value]) => value);
+      document.getElementById("savedPaths").innerHTML = entries.length
+        ? "<b>Saved paths</b><br>" + entries.map(([key, value]) => `<span class="mono">${escapeHtml(key)}: ${escapeHtml(value)}</span>`).join("<br>")
+        : "";
+    }
     function renderReviewFields(project) {
       const isDiode = project?.component?.profile === "diode.power" || project?.component?.family === "diode";
       const fields = isDiode ? [

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic
 Versioning.
 
+## [1.0.2] - 2026-05-18
+
+### Added
+
+- Local workbench now saves reviewed project JSON through an explicit
+  **Save Project JSON** action.
+- Local workbench now mirrors reviewed extraction artifacts into
+  `parts/<PART>/`, including `<PART>.device.json` and `extract_result.json`.
+- Local workbench now mirrors generated model bundles into
+  `parts/<PART>/generated/` while preserving the session-based output path.
+- Generated model bundles now include the reviewed `<PART>.device.json`.
+
+### Changed
+
+- Local workbench displays saved project and generated output paths so reviewed
+  JSON and LTspice model files are easier to locate.
+- Model generation now saves the current reviewed project JSON before emitting
+  model files.
+
 ## [1.0.1] - 2026-05-18
 
 ### Added

@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from datasheet2spice.schema import DeviceProject
+from datasheet2spice.service import save_project_review
 from datasheet2spice.webapp import generate_model_bundle
 
 
@@ -18,9 +19,21 @@ class WebAppTests(unittest.TestCase):
             self.assertTrue(result["ok"])
             names = {item["name"] for item in result["files"]}
             self.assertIn("DEMO_SIC_1200_abm_ltspice.lib", names)
+            self.assertIn("DEMO_SIC_1200.device.json", names)
             self.assertIn("DEMO_SIC_1200_models.zip", names)
             self.assertIn("fit_evaluation.json", names)
             self.assertIn("evaluation", result)
+            self.assertTrue((Path(td) / "parts" / "DEMO_SIC_1200" / "generated" / "DEMO_SIC_1200.device.json").exists())
+
+    def test_save_project_review_writes_by_part_copy(self):
+        project = DeviceProject.load(DEMO)
+        with tempfile.TemporaryDirectory() as td:
+            result = save_project_review(project, Path(td) / "session")
+            self.assertTrue(result["ok"])
+            paths = result["save_paths"]
+            self.assertTrue(Path(paths["session_project"]).exists())
+            self.assertTrue(Path(paths["part_project"]).exists())
+            self.assertEqual(Path(paths["part_project"]).parent.name, "DEMO_SIC_1200")
 
 
 if __name__ == "__main__":
