@@ -180,9 +180,10 @@ def cmd_benchmark_model(args: argparse.Namespace) -> int:
         dialects=dialects,
         ltspice_exe=args.ltspice if args.run_ltspice else None,
         timeout_s=args.timeout,
+        measure_switching=args.measure_switching,
     )
     print(Path(args.out) / "benchmark_report.json")
-    return 1 if result["summary"]["failed_simulations"] else 0
+    return 1 if result["summary"]["failed_simulations"] or result["summary"].get("failed_switching_checks", 0) else 0
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
@@ -255,6 +256,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--run-ltspice", action="store_true", help="run generated LTspice decks when dialect is ltspice")
     p.add_argument("--ltspice", help="path to LTspice executable")
     p.add_argument("--timeout", type=int, default=120)
+    p.add_argument(
+        "--measure-switching",
+        action="store_true",
+        help="instrument LTspice MOSFET double-pulse decks with .meas switching quality metrics",
+    )
     p.set_defaults(func=cmd_benchmark_model)
 
     p = sub.add_parser("serve", help="run the local browser PDF extraction workbench")

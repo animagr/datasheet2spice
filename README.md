@@ -57,6 +57,7 @@ not vendor-qualified or safety-qualified models.
 | Demo diode extraction golden case | passing |
 | All-dialect diode model generation | passing, 28 generated files |
 | LTspice diode smoke convergence | passing, 2 decks, 0 warnings |
+| LTspice MOSFET switching metrics | passing, ABM and VDMOS demo double-pulse decks |
 | Public datasheet regression manifest | initial ST, Diodes Inc, Toshiba, Wolfspeed candidates |
 | Vendor-model waveform comparison | planned |
 | ngspice/Xyce automated simulation benchmarks | planned |
@@ -91,6 +92,7 @@ Run quality gates:
 ```powershell
 datasheet2spice score-case examples/demo_sic_diode/device.json validation/golden/demo_sic_diode.case.json
 datasheet2spice benchmark-model examples/demo_sic_diode/device.json --out build/bench-diode --model diode-basic --model diode-abm-dynamic --dialect all
+datasheet2spice benchmark-model examples/demo_sic_mosfet/device.json --out build/bench-mosfet-switching --model abm-basic --model vdmos-static-fast --dialect ltspice --measure-switching
 ```
 
 Run tests:

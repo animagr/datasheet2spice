@@ -65,9 +65,41 @@ datasheet2spice benchmark-model examples/demo_sic_diode/device.json `
 ```
 
 The current benchmark schema records generation success, simulator status,
-elapsed time, fatal log markers, and warnings. Future benchmark adapters can add
-ngspice, Xyce, HSPICE, PSpice, and waveform metric extraction without changing
-the top-level evidence shape.
+elapsed time, fatal log markers, and warnings. For LTspice MOSFET double-pulse
+decks, add switching metrics with:
+
+```powershell
+datasheet2spice benchmark-model examples/demo_sic_mosfet/device.json `
+  --out build/bench-mosfet-switching `
+  --model abm-basic `
+  --model vdmos-static-fast `
+  --dialect ltspice `
+  --measure-switching `
+  --run-ltspice `
+  --ltspice "C:\Users\<user>\AppData\Local\Programs\ADI\LTspice\LTspice.exe"
+```
+
+`--measure-switching` instruments generated MOSFET double-pulse decks with
+LTspice `.meas` statements and records:
+
+- average gate high and gate low levels,
+- average on-state load current,
+- average and minimum on-state drain voltage,
+- second-pulse re-on drain voltage,
+- turn-off drain overshoot,
+- turn-off drain peak-to-peak ringing,
+- simulation elapsed time, warnings, fatal markers, and return code.
+
+The benchmark flags hard failures such as gate drive not reaching the on level,
+load current not building, the drain not pulling low, excessive overshoot, and
+severe turn-off ringing. It also checks that the second pulse pulls the drain
+low again, which catches slow or unstable re-on behavior that can be hidden by
+first-pulse averages. Moderate turn-off ringing is marked as `review` so a human
+can compare the waveform against datasheet or bench conditions.
+
+Future benchmark adapters can add ngspice, Xyce, HSPICE, PSpice, vendor `.lib`
+reference comparisons, and raw-waveform metric extraction without changing the
+top-level evidence shape.
 
 ## Accuracy Targets
 
@@ -86,6 +118,20 @@ Vendor SPICE models are useful baselines when their licenses allow local use,
 but generated results should still be compared to datasheet test conditions and
 lab waveforms before design use.
 
+When a generated MOSFET does not turn on or shows unstable turn-off ringing,
+use this order:
+
+1. Re-run `benchmark-model --measure-switching` on the generated ABM and VDMOS
+   models to separate extraction/model issues from simulator setup issues.
+2. Compare `V(gate)`, `I(Lload)`, `V(drain)`, and elapsed time against a vendor
+   `.lib` under the same external circuit when the license permits local use.
+3. Check whether the datasheet only covers typical static values; if so, add a
+   same-vendor reference device with a trusted `.lib` to calibrate missing
+   channel, capacitance, body-diode, and parasitic assumptions.
+4. Treat agreement with a vendor `.lib` as an engineering baseline, not final
+   truth; close the loop with measured double-pulse waveforms before claiming
+   accuracy.
+
 ## Adding A New Case
 
 1. Add a JSON case or manifest entry under `validation/`.
@@ -97,4 +143,3 @@ lab waveforms before design use.
 6. Run `benchmark-model` for the relevant emitters and dialects.
 7. Attach result JSON/Markdown to the evidence pack for the release or pull
    request.
-

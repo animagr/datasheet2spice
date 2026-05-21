@@ -91,3 +91,9 @@ The browser workbench frontend is split into small ES modules:
 - `workbench_runtime.js` for backend mode selection,
 - `pdf_extractors.js` for browser PDF text heuristics,
 - `model_emitters.js` for static starter SPICE bundle generation.
+
+Browser Pages mode must keep model-generation semantics aligned with the Python
+emitters. It can remain lighter on PDF extraction and simulator execution, but
+the generated starter netlists should use the same fitted parameters, nonlinear
+capacitance tables, parasitic handling, and starter-deck assumptions as the
+local backend whenever the project JSON contains those values.
